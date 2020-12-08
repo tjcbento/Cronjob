@@ -1,0 +1,20 @@
+{
+  "profiles": {
+    "Cronjob": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    },
+    "Docker": {
+      "commandName": "Docker",
+      "environmentVariables": {
+        "DB_USER": "root",
+        "DB_DATABASE": "PenaltyV2",
+        "DB_URL": "penalty.duckdns.org",
+        "DB_PORT": "3307",
+        "DB_PASSWORD": "123pardal123"
+      }
+    }
+  }
+}
