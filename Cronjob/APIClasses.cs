@@ -2,6 +2,27 @@
 using System.Collections.Generic;
 using Newtonsoft.Json;
 
+namespace Leagues
+{
+    public partial class Leagues
+    {
+        [JsonProperty("api")]
+        public Api Api { get; set; }
+    }
+
+    public partial class Api
+    {
+        [JsonProperty("leagues")]
+        public List<League> Leagues { get; set; }
+    }
+
+    public partial class League
+    {
+        [JsonProperty("season")]
+        public string Season { get; set; }
+    }
+}
+
 namespace Fixtures
 {
     public partial class Fixtures
@@ -155,5 +176,32 @@ namespace Odds
 
         [JsonProperty("total")]
         public int Total { get; set; }
+    }
+}
+
+namespace Teams
+{
+    public partial class Teams
+    {
+        [JsonProperty("api")]
+        public Api Api { get; set; }
+    }
+
+    public partial class Api
+    {
+        [JsonProperty("teams")]
+        public List<Team> Teams { get; set; }
+    }
+
+    public partial class Team
+    {
+        [JsonProperty("team_id")]
+        public string TeamId { get; set; }
+
+        [JsonProperty("name")]
+        public string Name { get; set; }
+
+        [JsonProperty("logo")]
+        public string LogoUri { get; set; }
     }
 }

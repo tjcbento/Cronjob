@@ -1,24 +1,25 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Odds;
 
-namespace Cronjob
+namespace SimpleOdd
 {
     public class SimpleOdd
     {
+        public SimpleOdd()
+        {
+        }
 
         public SimpleOdd(Bookmaker bookmaker)
         {
             ExtractFromBookmaker(bookmaker);
         }
 
-        public double OddHome { get; set; }
+        public double? OddHome { get; set; }
 
-        public double OddDraw { get; set; }
+        public double? OddDraw { get; set; }
 
-        public double OddAway { get; set; }
+        public double? OddAway { get; set; }
 
         public void ExtractFromBookmaker(Bookmaker bookmaker)
         {
@@ -40,5 +41,23 @@ namespace Cronjob
                 }
             }
         }
+    }
+}
+
+namespace QueriedMatch
+{
+    public class QueriedMatch
+    {
+        public QueriedMatch()
+        {
+        }
+
+        public bool RequiresUpdate { get; set; }
+
+        public string Result { get; set; }
+
+        public int? Matchday { get; set; }
+
+        public SimpleOdd.SimpleOdd SimpleOdd { get; set; }
     }
 }
