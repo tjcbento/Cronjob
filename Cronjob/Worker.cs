@@ -59,6 +59,28 @@ namespace Cronjob
             var odds = GetOdds(apiUrl, leagueId, preferedBookmaker, xRapidApiKey, xRapidApiHost);
             var teams = GetTeams(apiUrl, leagueId, xRapidApiKey, xRapidApiHost);
 
+            MySqlCommand deleteOldHistoryOddsCommand = new MySqlCommand("DeleteOldHistoryOdds", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            deleteOldHistoryOddsCommand.ExecuteNonQuery();
+
+            foreach (var odd in odds)
+            {
+                MySqlCommand updateHistoryOddsCommand = new MySqlCommand("UpdateHistoryOdds", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                updateHistoryOddsCommand.Parameters.Add(new MySqlParameter("IdMatch", odd.Key));
+                updateHistoryOddsCommand.Parameters.Add(new MySqlParameter("OddHome", odd.Value.OddHome));
+                updateHistoryOddsCommand.Parameters.Add(new MySqlParameter("OddDraw", odd.Value.OddDraw));
+                updateHistoryOddsCommand.Parameters.Add(new MySqlParameter("OddAway", odd.Value.OddAway));
+
+                updateHistoryOddsCommand.ExecuteNonQuery();
+            }
+
             foreach (var team in teams)
             {
                 MySqlCommand updateTeamsCommand = new MySqlCommand();
