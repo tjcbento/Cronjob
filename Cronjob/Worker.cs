@@ -199,7 +199,7 @@ namespace Cronjob
                 command.Parameters.Add(new MySqlParameter("Idawayteam", match.AwayTeam.TeamId));
                 command.Parameters.Add(new MySqlParameter("Idhometeam", match.HomeTeam.TeamId));
                 command.Parameters.Add(new MySqlParameter("Status", match.StatusShort));
-                command.Parameters.Add(new MySqlParameter("Competitionyear", season));
+                command.Parameters.Add(new MySqlParameter("Competitionyear", leagueId));
                 command.Parameters.Add(new MySqlParameter("UtcDate", match.EventDate.UtcDateTime));
                 command.Parameters.Add(new MySqlParameter("IdmatchAPI", match.FixtureId));
                 command.Parameters.Add(new MySqlParameter("Result1", result));
@@ -250,6 +250,15 @@ namespace Cronjob
                     }
                 }
             }
+
+            MySqlCommand updateUserScoresCommand = new MySqlCommand();
+
+            updateUserScoresCommand = new MySqlCommand("UpdateUserScores", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            updateUserScoresCommand.ExecuteNonQuery();
 
             _logger.LogInformation("[{0}]: Closing connection to MySQL...", DateTime.Now.ToString());
             connection.Close();
