@@ -73,7 +73,7 @@ namespace Cronjob
                     CommandType = CommandType.StoredProcedure
                 };
 
-                updateHistoryOddsCommand.Parameters.Add(new MySqlParameter("IdMatch", odd.Key));
+                updateHistoryOddsCommand.Parameters.Add(new MySqlParameter("IdMatchAPI", odd.Key));
                 updateHistoryOddsCommand.Parameters.Add(new MySqlParameter("OddHome", odd.Value.OddHome));
                 updateHistoryOddsCommand.Parameters.Add(new MySqlParameter("OddDraw", odd.Value.OddDraw));
                 updateHistoryOddsCommand.Parameters.Add(new MySqlParameter("OddAway", odd.Value.OddAway));
@@ -199,7 +199,7 @@ namespace Cronjob
                 command.Parameters.Add(new MySqlParameter("Idawayteam", match.AwayTeam.TeamId));
                 command.Parameters.Add(new MySqlParameter("Idhometeam", match.HomeTeam.TeamId));
                 command.Parameters.Add(new MySqlParameter("Status", match.StatusShort));
-                command.Parameters.Add(new MySqlParameter("Competitionyear", leagueId));
+                command.Parameters.Add(new MySqlParameter("Competitionyear", season));
                 command.Parameters.Add(new MySqlParameter("UtcDate", match.EventDate.UtcDateTime));
                 command.Parameters.Add(new MySqlParameter("IdmatchAPI", match.FixtureId));
                 command.Parameters.Add(new MySqlParameter("Result1", result));
@@ -242,7 +242,7 @@ namespace Cronjob
                             CommandType = CommandType.StoredProcedure
                         };
 
-                        updateUnprocessedBetsCommand.Parameters.Add(new MySqlParameter("Idmatch", unprocessedBet));
+                        updateUnprocessedBetsCommand.Parameters.Add(new MySqlParameter("IdmatchAPI", unprocessedBet));
                         updateUnprocessedBetsCommand.Parameters.Add(new MySqlParameter("Result", queriedMatch.Result));
                         updateUnprocessedBetsCommand.Parameters.Add(new MySqlParameter("Score", matchScore));
 
@@ -265,6 +265,14 @@ namespace Cronjob
             _logger.LogInformation("[{0}]: Connection to MySQL successful closed!", DateTime.Now.ToString());
 
             return Task.CompletedTask;
+        }
+
+        private string GetRandomResult()
+        {
+            Random random = new Random();
+            string chars = "HDA";
+            return new string(Enumerable.Repeat(chars, 1)
+              .Select(s => s[random.Next(s.Length)]).ToArray());
         }
 
         private List<string> GetAvailableTeams(MySqlConnection connection)
