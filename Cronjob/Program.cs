@@ -50,13 +50,15 @@ namespace Cronjob
                 Dictionary<string, QueriedMatch.QueriedMatch> queriedFixtures = GetAvailableFixtures(connection);
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting unprocessed bets", DateTime.Now.ToString()));
                 List<string> unprocessedBets = GetUnprocessedBets(connection);
+                logOutput.AppendLine(String.Format("[{0}]       [-] Getting multipliers", DateTime.Now.ToString()));
+                Dictionary<int?, double?> multiplier = GetMultipliers(connection);
 
+                logOutput.AppendLine(String.Format("[{0}]       [-] Getting global constants", DateTime.Now.ToString()));
                 string leagueId = globalConstants["LEAGUE_ID"];
                 string apiUrl = globalConstants["API_URL"].TrimEnd('/');
                 string preferedBookmaker = globalConstants["PREFERED_BOOKMAKER"];
                 string xRapidApiKey = globalConstants["X_RAPID_API_KEY"];
                 string xRapidApiHost = globalConstants["X_RAPID_API_HOST"];
-                int numberMatchdayMultiplier = Convert.ToInt32(globalConstants["NUMBER_MATCHDAY_MULTIPLIER"]);
 
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting current season from API", DateTime.Now.ToString()));
                 string season = GetSeason(apiUrl, leagueId, xRapidApiKey, xRapidApiHost);
@@ -225,6 +227,7 @@ namespace Cronjob
                     }
 
                     command.Parameters.Add(new MySqlParameter("Matchday", match.Round.Split('-')[1][1..]));
+                    command.Parameters.Add(new MySqlParameter("Multiplier", multiplier[Convert.ToInt32(match.Round.Split('-')[1][1..])]));
                     command.Parameters.Add(new MySqlParameter("Hometeam", match.HomeTeam.TeamName));
                     command.Parameters.Add(new MySqlParameter("Hometeamgoals", match.GoalsHomeTeam));
                     command.Parameters.Add(new MySqlParameter("Awayteam", match.AwayTeam.TeamName));
@@ -260,9 +263,7 @@ namespace Cronjob
                             continue;
                         }
 
-                        double? matchScore = GetMatchScore(
-                            numberMatchdayMultiplier,
-                            queriedMatch);
+                        double? matchScore = GetMatchScore(queriedMatch);
 
                         if (matchScore == null)
                         {
@@ -317,6 +318,26 @@ namespace Cronjob
             }
 
             ProcessLogs(logOutput.ToString());
+        }
+
+        private static Dictionary<int?, double?> GetMultipliers(MySqlConnection connection)
+        {
+            MySqlCommand multipliersCommand = new MySqlCommand("GetMultipliers", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            MySqlDataReader multipliersReader = multipliersCommand.ExecuteReader();
+
+            Dictionary<int?, double?> multipliers = new Dictionary<int?, double?>();
+            while (multipliersReader.Read())
+            {
+                multipliers.Add(Convert.ToInt32(multipliersReader["Matchday"]), Convert.ToDouble(multipliersReader["Multiplier"]));
+            }
+            multipliers.Add(null, null);
+
+            multipliersReader.Close();
+
+            return multipliers;
         }
 
         private static void CheckForMissingOdds(StringBuilder logOutput, MySqlConnection connection)
@@ -431,27 +452,20 @@ namespace Cronjob
             return parsedTeams.Api.Teams;
         }
 
-        private static double? GetMatchScore(int numberMatchdayMultiplier, QueriedMatch.QueriedMatch queriedMatch)
+        private static double? GetMatchScore(QueriedMatch.QueriedMatch queriedMatch)
         {
-            double multiplier = 1;
-
-            if (queriedMatch.Matchday >= numberMatchdayMultiplier)
-            {
-                multiplier = 2;
-            }
-
             double? points;
             if (queriedMatch.Result == "H")
             {
-                points = multiplier * queriedMatch.SimpleOdd.OddHome;
+                points = queriedMatch.Multiplier * queriedMatch.SimpleOdd.OddHome;
             }
             else if (queriedMatch.Result == "D")
             {
-                points = multiplier * queriedMatch.SimpleOdd.OddDraw;
+                points = queriedMatch.Multiplier * queriedMatch.SimpleOdd.OddDraw;
             }
             else if (queriedMatch.Result == "A")
             {
-                points = multiplier * queriedMatch.SimpleOdd.OddAway;
+                points = queriedMatch.Multiplier * queriedMatch.SimpleOdd.OddAway;
             }
             else
             {
@@ -505,6 +519,7 @@ namespace Cronjob
                         RequiresUpdate = availableFixturesReader.IsDBNull("Result1"),
                         Result = ProcessMySqlResult(availableFixturesReader, "Result1"),
                         Matchday = ProcessMySqlMatchday(availableFixturesReader, "Matchday"),
+                        Multiplier = ProcessMySqlMultiplier(availableFixturesReader, "Multiplier"),
                         SimpleOdd = new SimpleOdd.SimpleOdd()
                         {
                             OddHome = ProcessMySqlOdd(availableFixturesReader, "Oddshome"),
@@ -517,6 +532,18 @@ namespace Cronjob
             availableFixturesReader.Close();
 
             return queriedFixtures;
+        }
+
+        private static double? ProcessMySqlMultiplier(MySqlDataReader availableFixturesReader, string column)
+        {
+            if (availableFixturesReader.IsDBNull(column))
+            {
+                return null;
+            }
+            else
+            {
+                return (double?)availableFixturesReader.GetDecimal(column);
+            }
         }
 
         private static int? ProcessMySqlMatchday(MySqlDataReader availableFixturesReader, string column)
@@ -543,15 +570,15 @@ namespace Cronjob
             }
         }
 
-        private static double? ProcessMySqlOdd(MySqlDataReader odd, string column)
+        private static double? ProcessMySqlOdd(MySqlDataReader availableFixturesReader, string column)
         {
-            if (odd.IsDBNull(column))
+            if (availableFixturesReader.IsDBNull(column))
             {
                 return null;
             }
             else
             {
-                return (double?)odd.GetDecimal(column);
+                return (double?)availableFixturesReader.GetDecimal(column);
             }
         }
 

@@ -58,6 +58,8 @@ namespace QueriedMatch
 
         public int? Matchday { get; set; }
 
+        public double? Multiplier { get; set; }
+
         public SimpleOdd.SimpleOdd SimpleOdd { get; set; }
     }
 }
