@@ -51,7 +51,7 @@ namespace Cronjob
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting unprocessed bets", DateTime.Now.ToString()));
                 List<string> unprocessedBets = GetUnprocessedBets(connection);
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting multipliers", DateTime.Now.ToString()));
-                Dictionary<int?, double?> multiplier = GetMultipliers(connection);
+                Dictionary<int, double?> multiplier = GetMultipliers(connection);
 
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting global constants", DateTime.Now.ToString()));
                 string leagueId = globalConstants["LEAGUE_ID"];
@@ -226,6 +226,7 @@ namespace Cronjob
                         result = ProcessResult(match.GoalsHomeTeam, match.GoalsAwayTeam);
                     }
 
+                    command.Parameters.Add(new MySqlParameter("LeagueID", leagueId));
                     command.Parameters.Add(new MySqlParameter("Matchday", match.Round.Split('-')[1][1..]));
                     command.Parameters.Add(new MySqlParameter("Multiplier", multiplier[Convert.ToInt32(match.Round.Split('-')[1][1..])]));
                     command.Parameters.Add(new MySqlParameter("Hometeam", match.HomeTeam.TeamName));
@@ -320,7 +321,7 @@ namespace Cronjob
             ProcessLogs(logOutput.ToString());
         }
 
-        private static Dictionary<int?, double?> GetMultipliers(MySqlConnection connection)
+        private static Dictionary<int, double?> GetMultipliers(MySqlConnection connection)
         {
             MySqlCommand multipliersCommand = new MySqlCommand("GetMultipliers", connection)
             {
@@ -328,12 +329,11 @@ namespace Cronjob
             };
             MySqlDataReader multipliersReader = multipliersCommand.ExecuteReader();
 
-            Dictionary<int?, double?> multipliers = new Dictionary<int?, double?>();
+            Dictionary<int, double?> multipliers = new Dictionary<int, double?>();
             while (multipliersReader.Read())
             {
                 multipliers.Add(Convert.ToInt32(multipliersReader["Matchday"]), Convert.ToDouble(multipliersReader["Multiplier"]));
             }
-            multipliers.Add(null, null);
 
             multipliersReader.Close();
 
