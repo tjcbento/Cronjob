@@ -478,7 +478,7 @@ namespace Cronjob
             }
             else
             {
-                return Math.Round((double)points, 2);
+                return Math.Round((double)points, 2, MidpointRounding.AwayFromZero);
             }
         }
 
