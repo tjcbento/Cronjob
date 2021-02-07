@@ -301,8 +301,8 @@ namespace Cronjob
                     }
                 }
 
-                logOutput.AppendLine(String.Format("[{0}]       [+] Updating user scores", DateTime.Now.ToString()));
-                UpdateUserScores(connection);
+                logOutput.AppendLine(String.Format("[{0}]       [+] Updating cumulative scores", DateTime.Now.ToString()));
+                UpdateCumulativeScores(connection, leagueId);
 
                 logOutput.AppendLine(String.Format("[{0}]       [-] Checking for missing odds", DateTime.Now.ToString()));
                 CheckForMissingOdds(logOutput, connection);
@@ -319,6 +319,51 @@ namespace Cronjob
             }
 
             ProcessLogs(logOutput.ToString());
+        }
+
+        private static void UpdateCumulativeScores(MySqlConnection connection, string leagueId)
+        {
+            MySqlCommand deleteCumulativeScoresByLeagueIDCommand = new MySqlCommand();
+
+            deleteCumulativeScoresByLeagueIDCommand = new MySqlCommand("DeleteCumulativeScoresByLeagueID", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            deleteCumulativeScoresByLeagueIDCommand.Parameters.Add(new MySqlParameter("LeagueID", leagueId));
+
+            deleteCumulativeScoresByLeagueIDCommand.ExecuteNonQuery();
+
+            MySqlCommand getUsersPerLeagueIdCommand = new MySqlCommand("GetUsersPerLeagueID", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            getUsersPerLeagueIdCommand.Parameters.Add(new MySqlParameter("LeagueID", leagueId));
+
+            MySqlDataReader getUsersPerLeagueIdReader = getUsersPerLeagueIdCommand.ExecuteReader();
+
+            List<string> users = new List<string>();
+            while (getUsersPerLeagueIdReader.Read())
+            {
+                users.Add(Convert.ToString(getUsersPerLeagueIdReader["Username"]));
+            }
+
+            getUsersPerLeagueIdReader.Close();
+
+            foreach (var user in users)
+            {
+                MySqlCommand updateCumulativeScoresCommand = new MySqlCommand();
+
+                updateCumulativeScoresCommand = new MySqlCommand("UpdateCumulativeScores", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                updateCumulativeScoresCommand.Parameters.Add(new MySqlParameter("Username", user));
+                updateCumulativeScoresCommand.Parameters.Add(new MySqlParameter("LeagueID", leagueId));
+
+                updateCumulativeScoresCommand.ExecuteNonQuery();
+            }
         }
 
         private static Dictionary<int, double?> GetMultipliers(MySqlConnection connection)
@@ -360,18 +405,6 @@ namespace Cronjob
             }
 
             missingOddsForCurrentMatchesReader.Close();
-        }
-
-        private static void UpdateUserScores(MySqlConnection connection)
-        {
-            MySqlCommand updateUserScoresCommand = new MySqlCommand();
-
-            updateUserScoresCommand = new MySqlCommand("UpdateUserScores", connection)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-
-            updateUserScoresCommand.ExecuteNonQuery();
         }
 
         private static void ProcessLogs(string logOutput)
