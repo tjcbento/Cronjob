@@ -247,6 +247,9 @@ namespace Cronjob
                     command.ExecuteNonQuery();
                 }
 
+                logOutput.AppendLine(String.Format("[{0}]       [-] Updating available fixtures", DateTime.Now.ToString()));
+                queriedFixtures = GetAvailableFixtures(connection);
+
                 logOutput.AppendLine(String.Format("[{0}]       [-] Updating bets", DateTime.Now.ToString()));
                 foreach (var unprocessedBet in unprocessedBets)
                 {
