@@ -25,6 +25,7 @@ namespace Cronjob
             {
                 logOutput.AppendLine(String.Format("[{0}]       [-] Update script starting", DateTime.Now.ToString()));
 
+                logOutput.AppendLine(String.Format("[{0}]       [-] Retrieving necessary environment variables", DateTime.Now.ToString()));
                 string connectionString = string.Format(
                     "server={0};user={1};password={2};port={3};database={4}",
                     new string[]
@@ -36,10 +37,10 @@ namespace Cronjob
                     Environment.GetEnvironmentVariable("DB_DATABASE")
                     });
 
-                logOutput.AppendLine(String.Format("[{0}]       [-] Connecting to MySQL", DateTime.Now.ToString()));
+                logOutput.AppendLine(String.Format("[{0}]       [-] Opening connection to MySQL", DateTime.Now.ToString()));
                 MySqlConnection connection = new MySqlConnection(connectionString);
                 connection.Open();
-                logOutput.AppendLine(String.Format("[{0}]       [-] Connection to MySQL successful", DateTime.Now.ToString()));
+                logOutput.AppendLine(String.Format("[{0}]       [-] Connection to MySQL successfully opened", DateTime.Now.ToString()));
 
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting global constants", DateTime.Now.ToString()));
                 Dictionary<string, string> globalConstants = GetGlobalConstants(connection);
@@ -68,6 +69,45 @@ namespace Cronjob
                 var odds = GetOdds(apiUrl, leagueId, preferedBookmaker, xRapidApiKey, xRapidApiHost);
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting teams from API", DateTime.Now.ToString()));
                 var teams = GetTeams(apiUrl, leagueId, xRapidApiKey, xRapidApiHost);
+                logOutput.AppendLine(String.Format("[{0}]       [-] Getting standings from API", DateTime.Now.ToString()));
+                var standings = GetStandings(apiUrl, leagueId, xRapidApiKey, xRapidApiHost);
+
+                MySqlCommand truncateStandingsCommand = new MySqlCommand("TruncateStandings", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                logOutput.AppendLine(String.Format("[{0}]       [+] Truncating standings", DateTime.Now.ToString()));
+                truncateStandingsCommand.ExecuteNonQuery();
+
+                logOutput.AppendLine(String.Format("[{0}]       [-] Updating standings", DateTime.Now.ToString()));
+                foreach (var standing in standings)
+                {
+                    MySqlCommand updateStandingCommand = new MySqlCommand("UpdateStanding", connection)
+                    {
+                        CommandType = CommandType.StoredProcedure
+                    };
+
+                    updateStandingCommand.Parameters.Add(new MySqlParameter("TeamId", standing.TeamId));
+                    updateStandingCommand.Parameters.Add(new MySqlParameter("Rank", standing.Rank));
+                    updateStandingCommand.Parameters.Add(new MySqlParameter("Points", standing.Points));
+                    updateStandingCommand.Parameters.Add(new MySqlParameter("Forme", standing.Forme));
+                    updateStandingCommand.Parameters.Add(new MySqlParameter("MatchsPlayed", standing.All.MatchsPlayed));
+                    updateStandingCommand.Parameters.Add(new MySqlParameter("Win", standing.All.Win));
+                    updateStandingCommand.Parameters.Add(new MySqlParameter("Draw", standing.All.Draw));
+                    updateStandingCommand.Parameters.Add(new MySqlParameter("Lose", standing.All.Lose));
+                    updateStandingCommand.Parameters.Add(new MySqlParameter("GoalsFor", standing.All.GoalsFor));
+                    updateStandingCommand.Parameters.Add(new MySqlParameter("GoalsAgainst", standing.All.GoalsAgainst));
+
+                    logOutput.AppendLine(String.Format(
+                        "[{0}]       [+] Adding standing for TeamId='{1}'",
+                        new object[]
+                        {
+                            DateTime.Now.ToString(),
+                            standing.TeamId
+                        }));
+                    updateStandingCommand.ExecuteNonQuery();
+                }
 
                 MySqlCommand deleteOldHistoryOddsCommand = new MySqlCommand("DeleteOldHistoryOdds", connection)
                 {
@@ -322,6 +362,19 @@ namespace Cronjob
             }
 
             ProcessLogs(logOutput.ToString());
+        }
+
+        private static List<Standings.Standing> GetStandings(string apiUrl, string leagueId, string xRapidApiKey, string xRapidApiHost)
+        {
+            var leaguesUrl = new RestClient(apiUrl + "/v2/leagueTable/" + leagueId);
+            var leaguesRequest = new RestRequest(Method.GET);
+            leaguesRequest.AddHeader("X-RAPIDAPI-KEY", xRapidApiKey);
+            leaguesRequest.AddHeader("X-RAPIDAPI-HOST", xRapidApiHost);
+            IRestResponse standingsResponse = leaguesUrl.Execute(leaguesRequest);
+
+            var parsedStandings = JsonConvert.DeserializeObject<Standings.Standings>(standingsResponse.Content);
+
+            return parsedStandings.Api.Standings[0];
         }
 
         private static void UpdateCumulativeScores(MySqlConnection connection, string leagueId)

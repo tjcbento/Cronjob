@@ -205,3 +205,61 @@ namespace Teams
         public string LogoUri { get; set; }
     }
 }
+
+namespace Standings
+{
+    using System;
+    using System.Collections.Generic;
+    using Newtonsoft.Json;
+
+    public partial class Standings
+    {
+        [JsonProperty("api")]
+        public Api Api { get; set; }
+    }
+
+    public partial class Api
+    {
+        [JsonProperty("standings")]
+        public List<List<Standing>> Standings { get; set; }
+    }
+
+    public partial class Standing
+    {
+        [JsonProperty("team_id")]
+        public string TeamId { get; set; }
+
+        [JsonProperty("rank")]
+        public int Rank { get; set; }
+
+        [JsonProperty("points")]
+        public long Points { get; set; }
+
+        [JsonProperty("forme")]
+        public string Forme { get; set; }
+
+        [JsonProperty("all")]
+        public All All { get; set; }
+    }
+
+    public partial class All
+    {
+        [JsonProperty("matchsPlayed")]
+        public long MatchsPlayed { get; set; }
+
+        [JsonProperty("win")]
+        public long Win { get; set; }
+
+        [JsonProperty("draw")]
+        public long Draw { get; set; }
+
+        [JsonProperty("lose")]
+        public long Lose { get; set; }
+
+        [JsonProperty("goalsFor")]
+        public long GoalsFor { get; set; }
+
+        [JsonProperty("goalsAgainst")]
+        public long GoalsAgainst { get; set; }
+    }
+}
