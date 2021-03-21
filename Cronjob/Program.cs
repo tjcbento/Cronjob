@@ -92,7 +92,7 @@ namespace Cronjob
                     updateStandingCommand.Parameters.Add(new MySqlParameter("Rank", standing.Rank));
                     updateStandingCommand.Parameters.Add(new MySqlParameter("Points", standing.Points));
                     updateStandingCommand.Parameters.Add(new MySqlParameter("Forme", standing.Forme));
-                    updateStandingCommand.Parameters.Add(new MySqlParameter("MatchsPlayed", standing.All.MatchsPlayed));
+                    updateStandingCommand.Parameters.Add(new MySqlParameter("MatchesPlayed", standing.All.MatchesPlayed));
                     updateStandingCommand.Parameters.Add(new MySqlParameter("Win", standing.All.Win));
                     updateStandingCommand.Parameters.Add(new MySqlParameter("Draw", standing.All.Draw));
                     updateStandingCommand.Parameters.Add(new MySqlParameter("Lose", standing.All.Lose));

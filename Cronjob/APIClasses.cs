@@ -233,7 +233,7 @@ namespace Standings
         public int Rank { get; set; }
 
         [JsonProperty("points")]
-        public long Points { get; set; }
+        public int Points { get; set; }
 
         [JsonProperty("forme")]
         public string Forme { get; set; }
@@ -245,21 +245,21 @@ namespace Standings
     public partial class All
     {
         [JsonProperty("matchsPlayed")]
-        public long MatchsPlayed { get; set; }
+        public int MatchesPlayed { get; set; }
 
         [JsonProperty("win")]
-        public long Win { get; set; }
+        public int Win { get; set; }
 
         [JsonProperty("draw")]
-        public long Draw { get; set; }
+        public int Draw { get; set; }
 
         [JsonProperty("lose")]
-        public long Lose { get; set; }
+        public int Lose { get; set; }
 
         [JsonProperty("goalsFor")]
-        public long GoalsFor { get; set; }
+        public int GoalsFor { get; set; }
 
         [JsonProperty("goalsAgainst")]
-        public long GoalsAgainst { get; set; }
+        public int GoalsAgainst { get; set; }
     }
 }
