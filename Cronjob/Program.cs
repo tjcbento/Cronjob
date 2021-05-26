@@ -60,6 +60,7 @@ namespace Cronjob
                 string preferedBookmaker = globalConstants["PREFERED_BOOKMAKER"];
                 string xRapidApiKey = globalConstants["X_RAPID_API_KEY"];
                 string xRapidApiHost = globalConstants["X_RAPID_API_HOST"];
+                string roundsImport = globalConstants["ROUNDS_IMPORT"];
 
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting current season from API", DateTime.Now.ToString()));
                 string season = GetSeason(apiUrl, leagueId, xRapidApiKey, xRapidApiHost);
@@ -186,12 +187,25 @@ namespace Cronjob
                 {
                     MySqlCommand command = new MySqlCommand();
 
+                    if (!match.Round.Contains(roundsImport))
+                    {
+                        logOutput.AppendLine(String.Format(
+                                "[{0}]       [-] Skipping match update for FixtureId='{1}' (Not interested in matches for round '" + match.Round + "')",
+                                new object[]
+                                {
+                                DateTime.Now.ToString(),
+                                match.FixtureId
+                                }));
+
+                        continue;
+                    }
+
                     if (queriedFixtures.TryGetValue(match.FixtureId, out QueriedMatch.QueriedMatch queriedMatch))
                     {
                         if (!queriedMatch.RequiresUpdate)
                         {
                             logOutput.AppendLine(String.Format(
-                                "[{0}]       [-] Skipping match update for FixtureId='{1}'",
+                                "[{0}]       [-] Skipping match update for FixtureId='{1}' (Already up-to-date)",
                                 new object[]
                                 {
                                 DateTime.Now.ToString(),
