@@ -230,7 +230,7 @@ namespace Standings
         public string TeamId { get; set; }
 
         [JsonProperty("rank")]
-        public int Rank { get; set; }
+        public int Position { get; set; }
 
         [JsonProperty("points")]
         public int Points { get; set; }
