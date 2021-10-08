@@ -364,6 +364,65 @@ namespace Cronjob
                 logOutput.AppendLine(String.Format("[{0}]       [-] Checking for missing odds", DateTime.Now.ToString()));
                 CheckForMissingOdds(logOutput, connection);
 
+                if (fixtures.All(match => match.StatusShort == "FT") && !Convert.ToBoolean(globalConstants["EMAIL_LEAGUE_MANAGERS"]))
+                {
+                    logOutput.AppendLine(String.Format("[{0}]       [-] Sending e-mails to league managers", DateTime.Now.ToString()));
+
+                    Dictionary<string, string> leagues = GetLeagues(connection);
+
+                    string emailHeader = File.ReadAllText("/app/EmailHeader");
+                    string emailTable = File.ReadAllText("/app/EmailTable");
+                    string emailFooter = File.ReadAllText("/app/EmailFooter");
+
+                    logOutput.AppendLine(String.Format("[{0}]       [-] Establishing SMTP session", DateTime.Now.ToString()));
+                    var fromAddress = new MailAddress(Environment.GetEnvironmentVariable("FROM_EMAIL"), Environment.GetEnvironmentVariable("FROM_NAME"));
+                    string emailPassword = Environment.GetEnvironmentVariable("EMAIL_PASSWORD");
+
+                    var smtp = new SmtpClient
+                    {
+                        Host = "smtp.gmail.com",
+                        Port = 587,
+                        EnableSsl = true,
+                        DeliveryMethod = SmtpDeliveryMethod.Network,
+                        UseDefaultCredentials = false,
+                        Credentials = new NetworkCredential(fromAddress.Address, emailPassword)
+                    };
+                    logOutput.AppendLine(String.Format("[{0}]       [-] SMTP session established successfully", DateTime.Now.ToString()));
+
+                    foreach (var league in leagues)
+                    {
+                        MySqlCommand getFinalScoresLeagueCommand = new MySqlCommand("GetFinalScores", connection)
+                        {
+                            CommandType = CommandType.StoredProcedure
+                        };
+
+                        getFinalScoresLeagueCommand.Parameters.Add(new MySqlParameter("LeagueId", leagueId));
+                        getFinalScoresLeagueCommand.Parameters.Add(new MySqlParameter("LeagueName", league.Key));
+
+                        MySqlDataReader getFinalScoresLeagueReader = getFinalScoresLeagueCommand.ExecuteReader();
+
+                        string body = GetBody(emailHeader, emailTable, emailFooter, league.Key, getFinalScoresLeagueReader);
+                        getFinalScoresLeagueReader.Close();
+
+                        using var message = new MailMessage(fromAddress, new MailAddress(league.Value))
+                        {
+                            Subject = "Resultado final liga " + league.Key,
+                            Body = body,
+                            IsBodyHtml = true
+                        };
+
+                        logOutput.AppendLine(String.Format("[{0}]       [+] Sending e-mail to the manager of " + league.Key + " league", DateTime.Now.ToString()));
+                        smtp.Send(message);
+                    }
+
+                    logOutput.AppendLine(String.Format("[{0}]       [+] Disabling e-mails to league managers", DateTime.Now.ToString()));
+                    DisableEmailToLeagueManagers(connection);
+                }
+                else
+                {
+                    logOutput.AppendLine(String.Format("[{0}]       [-] No need to send e-mail to league managers", DateTime.Now.ToString()));
+                }
+
                 logOutput.AppendLine(String.Format("[{0}]       [-] Closing connection to MySQL", DateTime.Now.ToString()));
                 connection.Close();
                 logOutput.AppendLine(String.Format("[{0}]       [-] Connection to MySQL successful closed", DateTime.Now.ToString()));
@@ -376,6 +435,60 @@ namespace Cronjob
             }
 
             ProcessLogs(logOutput.ToString());
+        }
+
+        private static string GetBody(string emailHeader, string emailTable, string emailFooter, string league, MySqlDataReader places)
+        {
+            StringBuilder body = new StringBuilder();
+
+            body.Append(emailHeader);
+            body.Append(league);
+            body.Append(emailTable);
+
+            int position = 1;
+            while (places.Read())
+            {
+                body.Append("<tr style=\"box-sizing: border-box; page-break-inside: avoid;\">");
+                body.Append("<td>&nbsp;" + position + " </td>");
+                body.Append("<td>&nbsp;" + places.GetString("Name") + " </td>");
+                body.Append("<td>&nbsp;" + places.GetString("Score") + " </td>");
+                body.Append("<td>&nbsp;" + places.GetString("CorrectPredictions") + " </td>");
+                body.Append("</tr>");
+
+                position++;
+            }
+
+            body.Append(emailFooter);
+
+            return body.ToString();
+        }
+
+        private static void DisableEmailToLeagueManagers(MySqlConnection connection)
+        {
+            MySqlCommand disableEmailToLeagueManagersCommand = new MySqlCommand("DisableEmailToLeagueManagers", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            disableEmailToLeagueManagersCommand.ExecuteNonQuery();
+        }
+
+        private static Dictionary<string, string> GetLeagues(MySqlConnection connection)
+        {
+            MySqlCommand leaguesCommand = new MySqlCommand("GetLeagues", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            MySqlDataReader leaguesReader = leaguesCommand.ExecuteReader();
+
+            Dictionary<string, string> leagues = new Dictionary<string, string>();
+            while (leaguesReader.Read())
+            {
+                leagues.Add(Convert.ToString(leaguesReader["LeagueName"]), Convert.ToString(leaguesReader["ManagerEmail"]));
+            }
+
+            leaguesReader.Close();
+
+            return leagues;
         }
 
         private static List<Standings.Standing> GetStandings(string apiUrl, string leagueId, string xRapidApiKey, string xRapidApiHost)
@@ -393,7 +506,9 @@ namespace Cronjob
 
         private static void UpdateCumulativeScores(MySqlConnection connection, string leagueId)
         {
+#pragma warning disable IDE0059 // Unnecessary assignment of a value
             MySqlCommand deleteCumulativeScoresByLeagueIDCommand = new MySqlCommand();
+#pragma warning restore IDE0059 // Unnecessary assignment of a value
 
             deleteCumulativeScoresByLeagueIDCommand = new MySqlCommand("DeleteCumulativeScoresByLeagueID", connection)
             {
@@ -422,7 +537,9 @@ namespace Cronjob
 
             foreach (var user in users)
             {
+#pragma warning disable IDE0059 // Unnecessary assignment of a value
                 MySqlCommand updateCumulativeScoresCommand = new MySqlCommand();
+#pragma warning restore IDE0059 // Unnecessary assignment of a value
 
                 updateCumulativeScoresCommand = new MySqlCommand("UpdateCumulativeScores", connection)
                 {
