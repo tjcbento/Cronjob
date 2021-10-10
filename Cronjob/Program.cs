@@ -437,7 +437,7 @@ namespace Cronjob
             ProcessLogs(logOutput.ToString());
         }
 
-        private static string ProcessForme(this string forme)
+        private static string ProcessForme(string forme)
         {
             return new string(forme.Replace('W', 'C').Replace('D', 'E').Replace('L', 'D').Reverse().ToArray());
         }
