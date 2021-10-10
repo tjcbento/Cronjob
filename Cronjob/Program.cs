@@ -92,7 +92,7 @@ namespace Cronjob
                     updateStandingCommand.Parameters.Add(new MySqlParameter("TeamId", standing.TeamId));
                     updateStandingCommand.Parameters.Add(new MySqlParameter("Position", standing.Position));
                     updateStandingCommand.Parameters.Add(new MySqlParameter("Points", standing.Points));
-                    updateStandingCommand.Parameters.Add(new MySqlParameter("Forme", standing.Forme));
+                    updateStandingCommand.Parameters.Add(new MySqlParameter("Forme", ProcessForme(standing.Forme)));
                     updateStandingCommand.Parameters.Add(new MySqlParameter("MatchesPlayed", standing.All.MatchesPlayed));
                     updateStandingCommand.Parameters.Add(new MySqlParameter("Win", standing.All.Win));
                     updateStandingCommand.Parameters.Add(new MySqlParameter("Draw", standing.All.Draw));
@@ -435,6 +435,11 @@ namespace Cronjob
             }
 
             ProcessLogs(logOutput.ToString());
+        }
+
+        private static string ProcessForme(this string forme)
+        {
+            return new string(forme.Replace('W', 'C').Replace('D', 'E').Replace('L', 'D').Reverse().ToArray());
         }
 
         private static string GetBody(string emailHeader, string emailTable, string emailFooter, string league, MySqlDataReader places)
