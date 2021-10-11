@@ -439,7 +439,7 @@ namespace Cronjob
 
         private static string ProcessForme(string forme)
         {
-            return new string(forme.Replace('W', 'C').Replace('D', 'E').Replace('L', 'D').Reverse().ToArray());
+            return new string(forme.Replace('W', 'V').Replace('D', 'E').Replace('L', 'D').Reverse().ToArray());
         }
 
         private static string GetBody(string emailHeader, string emailTable, string emailFooter, string league, MySqlDataReader places)
