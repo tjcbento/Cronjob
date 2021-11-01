@@ -291,7 +291,7 @@ namespace Cronjob
                     command.Parameters.Add(new MySqlParameter("Idhometeam", match.HomeTeam.TeamId));
                     command.Parameters.Add(new MySqlParameter("Status", match.StatusShort));
                     command.Parameters.Add(new MySqlParameter("Competitionyear", season));
-                    command.Parameters.Add(new MySqlParameter("UtcDate", match.EventDate.UtcDateTime.AddHours(1)));
+                    command.Parameters.Add(new MySqlParameter("UtcDate", match.EventDate.UtcDateTime.AddHours(DateTimeOffset.Now.Offset.TotalHours)));
                     command.Parameters.Add(new MySqlParameter("IdmatchAPI", match.FixtureId));
                     command.Parameters.Add(new MySqlParameter("Result1", result));
                     command.Parameters.Add(new MySqlParameter("Oddshome", oddHome));
