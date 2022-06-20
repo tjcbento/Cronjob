@@ -278,14 +278,15 @@ namespace Cronjob
 
                     string result = null;
                     string videoCode = null;
+                    string matchday = match.Round.Split('-')[1][1..]);
                     if (match.StatusShort == "FT")
                     {
                         result = ProcessResult(match.GoalsHomeTeam, match.GoalsAwayTeam);
-                        videoCode = GetVideo(apiUrlYoutube, String.Join('+', match.HomeTeam.TeamName, match.AwayTeam.TeamName), xRapidApiKey, xRapidApiHostYoutube);
+                        videoCode = GetVideo(apiUrlYoutube, String.Join('+', match.HomeTeam.TeamName, match.AwayTeam.TeamName, matchday), xRapidApiKey, xRapidApiHostYoutube);
                     }
 
                     command.Parameters.Add(new MySqlParameter("LeagueID", leagueId));
-                    command.Parameters.Add(new MySqlParameter("Matchday", match.Round.Split('-')[1][1..]));
+                    command.Parameters.Add(new MySqlParameter("Matchday", matchday));
                     command.Parameters.Add(new MySqlParameter("Multiplier", multiplier[Convert.ToInt32(match.Round.Split('-')[1][1..])]));
                     command.Parameters.Add(new MySqlParameter("Hometeam", match.HomeTeam.TeamName));
                     command.Parameters.Add(new MySqlParameter("Hometeamgoals", match.GoalsHomeTeam));
