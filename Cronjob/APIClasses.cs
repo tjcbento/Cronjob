@@ -263,3 +263,24 @@ namespace Standings
         public int GoalsAgainst { get; set; }
     }
 }
+
+namespace Videos
+{
+    public partial class Videos
+    {
+        [JsonProperty("contents")]
+        public List<Content> Contents { get; set; }
+    }
+
+    public partial class Content
+    {
+        [JsonProperty("video")]
+        public Video Video { get; set; }
+    }
+
+    public partial class Video
+    {
+        [JsonProperty("videoId")]
+        public string VideoId { get; set; }
+    }
+}

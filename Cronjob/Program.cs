@@ -56,22 +56,24 @@ namespace Cronjob
 
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting global constants", DateTime.Now.ToString()));
                 string leagueId = globalConstants["LEAGUE_ID"];
-                string apiUrl = globalConstants["API_URL"].TrimEnd('/');
+                string apiUrlFootball = globalConstants["API_URL_FOOTBALL"];
+                string apiUrlYoutube = globalConstants["API_URL_FOOTBALL"];
                 string preferedBookmaker = globalConstants["PREFERED_BOOKMAKER"];
                 string xRapidApiKey = globalConstants["X_RAPID_API_KEY"];
-                string xRapidApiHost = globalConstants["X_RAPID_API_HOST"];
+                string xRapidApiHostFootball = globalConstants["X_RAPID_API_HOST_FOOTBALL"];
+                string xRapidApiHostYoutube = globalConstants["X_RAPID_API_HOST_YOUTUBE"];
                 string roundsImport = globalConstants["ROUNDS_IMPORT"];
 
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting current season from API", DateTime.Now.ToString()));
-                string season = GetSeason(apiUrl, leagueId, xRapidApiKey, xRapidApiHost);
+                string season = GetSeason(apiUrlFootball, leagueId, xRapidApiKey, xRapidApiHostFootball);
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting fixtures from API", DateTime.Now.ToString()));
-                var fixtures = GetFixtures(apiUrl, leagueId, xRapidApiKey, xRapidApiHost);
+                var fixtures = GetFixtures(apiUrlFootball, leagueId, xRapidApiKey, xRapidApiHostFootball);
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting odds from API", DateTime.Now.ToString()));
-                var odds = GetOdds(apiUrl, leagueId, preferedBookmaker, xRapidApiKey, xRapidApiHost);
+                var odds = GetOdds(apiUrlFootball, leagueId, preferedBookmaker, xRapidApiKey, xRapidApiHostFootball);
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting teams from API", DateTime.Now.ToString()));
-                var teams = GetTeams(apiUrl, leagueId, xRapidApiKey, xRapidApiHost);
+                var teams = GetTeams(apiUrlFootball, leagueId, xRapidApiKey, xRapidApiHostFootball);
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting standings from API", DateTime.Now.ToString()));
-                var standings = GetStandings(apiUrl, leagueId, xRapidApiKey, xRapidApiHost);
+                var standings = GetStandings(apiUrlFootball, leagueId, xRapidApiKey, xRapidApiHostFootball);
 
                 MySqlCommand truncateStandingsCommand = new MySqlCommand("TruncateStandings", connection)
                 {
@@ -275,9 +277,11 @@ namespace Cronjob
                     }
 
                     string result = null;
+                    string videoCode = null;
                     if (match.StatusShort == "FT")
                     {
                         result = ProcessResult(match.GoalsHomeTeam, match.GoalsAwayTeam);
+                        videoCode = GetVideo(apiUrlYoutube, String.Join('+', match.HomeTeam.TeamName, match.AwayTeam.TeamName), xRapidApiKey, xRapidApiHostYoutube);
                     }
 
                     command.Parameters.Add(new MySqlParameter("LeagueID", leagueId));
@@ -297,6 +301,7 @@ namespace Cronjob
                     command.Parameters.Add(new MySqlParameter("Oddshome", oddHome));
                     command.Parameters.Add(new MySqlParameter("Oddsdraw", oddDraw));
                     command.Parameters.Add(new MySqlParameter("Oddsaway", oddAway));
+                    command.Parameters.Add(new MySqlParameter("Video", videoCode));
 
                     command.ExecuteNonQuery();
                 }
@@ -435,6 +440,19 @@ namespace Cronjob
             }
 
             ProcessLogs(logOutput.ToString());
+        }
+
+        private static string GetVideo(string apiUrl, string query, string xRapidApiKey, string xRapidApiHost)
+        {
+            var youtubeUrl = new RestClient(apiUrl + "/search?query=vsports+" + query);
+            var youtubeRequest = new RestRequest(Method.GET);
+            youtubeRequest.AddHeader("X-RAPIDAPI-KEY", xRapidApiKey);
+            youtubeRequest.AddHeader("X-RAPIDAPI-HOST", xRapidApiHost);
+            IRestResponse youtubeResponse = youtubeUrl.Execute(youtubeRequest);
+
+            var parsedVideos = JsonConvert.DeserializeObject<Videos.Videos>(youtubeResponse.Content);
+
+            return parsedVideos.Contents[0].Video.VideoId;
         }
 
         private static string ProcessForme(string forme)
@@ -679,18 +697,18 @@ namespace Cronjob
 
         private static double? GetMatchScore(QueriedMatch.QueriedMatch queriedMatch)
         {
-            double? points;
+            decimal? points;
             if (queriedMatch.Result == "H")
             {
-                points = queriedMatch.Multiplier * queriedMatch.SimpleOdd.OddHome;
+                points = (decimal)queriedMatch.Multiplier * (decimal)queriedMatch.SimpleOdd.OddHome;
             }
             else if (queriedMatch.Result == "D")
             {
-                points = queriedMatch.Multiplier * queriedMatch.SimpleOdd.OddDraw;
+                points = (decimal)queriedMatch.Multiplier * (decimal)queriedMatch.SimpleOdd.OddDraw;
             }
             else if (queriedMatch.Result == "A")
             {
-                points = queriedMatch.Multiplier * queriedMatch.SimpleOdd.OddAway;
+                points = (decimal)queriedMatch.Multiplier * (decimal)queriedMatch.SimpleOdd.OddAway;
             }
             else
             {
@@ -703,7 +721,7 @@ namespace Cronjob
             }
             else
             {
-                return Math.Round((double)points, 2, MidpointRounding.AwayFromZero);
+                return Math.Round((double)points, 2, MidpointRounding.AwayFromZero); ;
             }
         }
 
