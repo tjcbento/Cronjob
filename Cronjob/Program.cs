@@ -278,7 +278,7 @@ namespace Cronjob
 
                     string result = null;
                     string videoCode = null;
-                    string matchday = match.Round.Split('-')[1][1..]);
+                    string matchday = match.Round.Split('-')[1][1..];
                     if (match.StatusShort == "FT")
                     {
                         result = ProcessResult(match.GoalsHomeTeam, match.GoalsAwayTeam);
