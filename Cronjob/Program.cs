@@ -282,7 +282,7 @@ namespace Cronjob
                     if (match.StatusShort == "FT")
                     {
                         result = ProcessResult(match.GoalsHomeTeam, match.GoalsAwayTeam);
-                        videoCode = GetVideo(apiUrlYoutube, String.Join('+', match.HomeTeam.TeamName, match.AwayTeam.TeamName, matchday), xRapidApiKey, xRapidApiHostYoutube);
+                        videoCode = GetVideo(GetYoutubeUrl(apiUrlYoutube, season, match.HomeTeam.TeamName, match.AwayTeam.TeamName, matchday), xRapidApiKey, xRapidApiHostYoutube);
                     }
 
                     command.Parameters.Add(new MySqlParameter("LeagueID", leagueId));
@@ -443,9 +443,26 @@ namespace Cronjob
             ProcessLogs(logOutput.ToString());
         }
 
-        private static string GetVideo(string apiUrl, string query, string xRapidApiKey, string xRapidApiHost)
+        private static RestClient GetYoutubeUrl(string apiUrl, string season, string homeTeamName, string awayTeamName, string matchday)
         {
-            var youtubeUrl = new RestClient(apiUrl + "/search?query=vsports+" + query);
+            var baseUrl = apiUrl +
+                "/search?query=vsports" + " " +
+                homeTeamName + " " +
+                awayTeamName + " " +
+                "(Liga " + FullSeason(season) + " " +
+                "#" + matchday + ")";
+
+            return new RestClient(baseUrl);
+        }
+
+        private static string FullSeason(string season)
+        {
+            var shortSeason = Convert.ToInt32(season[2..]);
+            return String.Join("/", shortSeason, shortSeason + 1);
+        }
+
+        private static string GetVideo(RestClient youtubeUrl, string xRapidApiKey, string xRapidApiHost)
+        {
             var youtubeRequest = new RestRequest(Method.GET);
             youtubeRequest.AddHeader("X-RAPIDAPI-KEY", xRapidApiKey);
             youtubeRequest.AddHeader("X-RAPIDAPI-HOST", xRapidApiHost);

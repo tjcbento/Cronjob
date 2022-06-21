@@ -10,7 +10,7 @@
         "DB_PORT": "3308",
         "EMAIL_PASSWORD": "penaltyTeam2016",
         "DB_USER": "root",
-        "DB_URL": "penalty.duckdns.org",
+        "DB_URL": "penalty.bet",
         "FROM_EMAIL": "penalty.bot@gmail.com"
       }
     },
