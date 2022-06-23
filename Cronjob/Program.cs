@@ -57,7 +57,7 @@ namespace Cronjob
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting global constants", DateTime.Now.ToString()));
                 string leagueId = globalConstants["LEAGUE_ID"];
                 string apiUrlFootball = globalConstants["API_URL_FOOTBALL"];
-                string apiUrlYoutube = globalConstants["API_URL_FOOTBALL"];
+                string apiUrlYoutube = globalConstants["API_URL_YOUTUBE"];
                 string preferedBookmaker = globalConstants["PREFERED_BOOKMAKER"];
                 string xRapidApiKey = globalConstants["X_RAPID_API_KEY"];
                 string xRapidApiHostFootball = globalConstants["X_RAPID_API_HOST_FOOTBALL"];
@@ -278,15 +278,14 @@ namespace Cronjob
 
                     string result = null;
                     string videoCode = null;
-                    string matchday = match.Round.Split('-')[1][1..];
                     if (match.StatusShort == "FT")
                     {
                         result = ProcessResult(match.GoalsHomeTeam, match.GoalsAwayTeam);
-                        videoCode = GetVideo(GetYoutubeUrl(apiUrlYoutube, season, match.HomeTeam.TeamName, match.AwayTeam.TeamName, matchday), xRapidApiKey, xRapidApiHostYoutube);
+                        videoCode = GetVideo(apiUrlYoutube, match, season, xRapidApiKey, xRapidApiHostYoutube);
                     }
 
                     command.Parameters.Add(new MySqlParameter("LeagueID", leagueId));
-                    command.Parameters.Add(new MySqlParameter("Matchday", matchday));
+                    command.Parameters.Add(new MySqlParameter("Matchday", match.Round.Split('-')[1][1..]));
                     command.Parameters.Add(new MySqlParameter("Multiplier", multiplier[Convert.ToInt32(match.Round.Split('-')[1][1..])]));
                     command.Parameters.Add(new MySqlParameter("Hometeam", match.HomeTeam.TeamName));
                     command.Parameters.Add(new MySqlParameter("Hometeamgoals", match.GoalsHomeTeam));
@@ -443,34 +442,36 @@ namespace Cronjob
             ProcessLogs(logOutput.ToString());
         }
 
-        private static RestClient GetYoutubeUrl(string apiUrl, string season, string homeTeamName, string awayTeamName, string matchday)
-        {
-            var baseUrl = apiUrl +
-                "/search?query=vsports" + " " +
-                homeTeamName + " " +
-                awayTeamName + " " +
-                "(Liga " + FullSeason(season) + " " +
-                "#" + matchday + ")";
-
-            return new RestClient(baseUrl);
-        }
-
         private static string FullSeason(string season)
         {
             var shortSeason = Convert.ToInt32(season[2..]);
             return String.Join("/", shortSeason, shortSeason + 1);
         }
 
-        private static string GetVideo(RestClient youtubeUrl, string xRapidApiKey, string xRapidApiHost)
+        private static string GetVideo(string apiUrlYoutube, Fixtures.Fixture match, string season, string xRapidApiKey, string xRapidApiHost)
         {
+            var youtubeUrl = new RestClient(apiUrlYoutube);
             var youtubeRequest = new RestRequest(Method.GET);
             youtubeRequest.AddHeader("X-RAPIDAPI-KEY", xRapidApiKey);
             youtubeRequest.AddHeader("X-RAPIDAPI-HOST", xRapidApiHost);
+            var query = GetQuery(match, season);
+            youtubeRequest.AddQueryParameter("query", query);
             IRestResponse youtubeResponse = youtubeUrl.Execute(youtubeRequest);
 
             var parsedVideos = JsonConvert.DeserializeObject<Videos.Videos>(youtubeResponse.Content);
 
             return parsedVideos.Contents[0].Video.VideoId;
+        }
+
+        private static string GetQuery(Fixtures.Fixture match, string season)
+        {
+            return "vsports" + " " +
+                match.HomeTeam.TeamName + " " +
+                match.AwayTeam.TeamName + " \"" +
+                match.GoalsHomeTeam + "-" +
+                match.GoalsAwayTeam + "\" " +
+                "\"(Liga " + FullSeason(season) + " " +
+                "#" + match.Round.Split('-')[1][1..] + ")\"";
         }
 
         private static string ProcessForme(string forme)
