@@ -451,12 +451,12 @@ namespace Cronjob
         private static string GetVideo(string apiUrlYoutube, Fixtures.Fixture match, string season, string xRapidApiKey, string xRapidApiHost)
         {
             var youtubeUrl = new RestClient(apiUrlYoutube);
-            var youtubeRequest = new RestRequest(Method.GET);
+            var youtubeRequest = new RestRequest();
             youtubeRequest.AddHeader("X-RAPIDAPI-KEY", xRapidApiKey);
             youtubeRequest.AddHeader("X-RAPIDAPI-HOST", xRapidApiHost);
             var query = GetQuery(match, season);
             youtubeRequest.AddQueryParameter("query", query);
-            IRestResponse youtubeResponse = youtubeUrl.Execute(youtubeRequest);
+            var youtubeResponse = youtubeUrl.Execute(youtubeRequest);
 
             var parsedVideos = JsonConvert.DeserializeObject<Videos.Videos>(youtubeResponse.Content);
 
@@ -536,10 +536,10 @@ namespace Cronjob
         private static List<Standings.Standing> GetStandings(string apiUrl, string leagueId, string xRapidApiKey, string xRapidApiHost)
         {
             var leaguesUrl = new RestClient(apiUrl + "/v2/leagueTable/" + leagueId);
-            var leaguesRequest = new RestRequest(Method.GET);
+            var leaguesRequest = new RestRequest();
             leaguesRequest.AddHeader("X-RAPIDAPI-KEY", xRapidApiKey);
             leaguesRequest.AddHeader("X-RAPIDAPI-HOST", xRapidApiHost);
-            IRestResponse standingsResponse = leaguesUrl.Execute(leaguesRequest);
+            var standingsResponse = leaguesUrl.Execute(leaguesRequest);
 
             var parsedStandings = JsonConvert.DeserializeObject<Standings.Standings>(standingsResponse.Content);
 
@@ -704,10 +704,10 @@ namespace Cronjob
         private static List<Teams.Team> GetTeams(string apiUrl, string leagueId, string xRapidApiKey, string xRapidApiHost)
         {
             var teamsUrl = new RestClient(apiUrl + "/v2/teams/league/" + leagueId);
-            var teamsRequest = new RestRequest(Method.GET);
+            var teamsRequest = new RestRequest();
             teamsRequest.AddHeader("X-RAPIDAPI-KEY", xRapidApiKey);
             teamsRequest.AddHeader("X-RAPIDAPI-HOST", xRapidApiHost);
-            IRestResponse teamsResponse = teamsUrl.Execute(teamsRequest);
+            var teamsResponse = teamsUrl.Execute(teamsRequest);
 
             var parsedTeams = JsonConvert.DeserializeObject<Teams.Teams>(teamsResponse.Content);
 
@@ -868,10 +868,10 @@ namespace Cronjob
         private static string GetSeason(string apiUrl, string leagueId, string xRapidApiKey, string xRapidApiHost)
         {
             var leaguesUrl = new RestClient(apiUrl + "/v2/leagues/league/" + leagueId);
-            var leaguesRequest = new RestRequest(Method.GET);
+            var leaguesRequest = new RestRequest();
             leaguesRequest.AddHeader("X-RAPIDAPI-KEY", xRapidApiKey);
             leaguesRequest.AddHeader("X-RAPIDAPI-HOST", xRapidApiHost);
-            IRestResponse leaguesResponse = leaguesUrl.Execute(leaguesRequest);
+            var leaguesResponse = leaguesUrl.Execute(leaguesRequest);
 
             var parsedLeagues = JsonConvert.DeserializeObject<Leagues.Leagues>(leaguesResponse.Content);
 
@@ -900,7 +900,7 @@ namespace Cronjob
         {
             int page = 1;
             var oddsUrl = new RestClient(apiUrl + "/v2/odds/league/" + leagueId + "/label/1");
-            var oddsRequest = new RestRequest(Method.GET);
+            var oddsRequest = new RestRequest();
             oddsRequest.AddHeader("X-RAPIDAPI-KEY", xRapidApiKey);
             oddsRequest.AddHeader("X-RAPIDAPI-HOST", xRapidApiHost);
 
@@ -909,7 +909,7 @@ namespace Cronjob
             while (true)
             {
                 oddsRequest.AddOrUpdateParameter("page", page.ToString());
-                IRestResponse oddsResponse = oddsUrl.Execute(oddsRequest);
+                var oddsResponse = oddsUrl.Execute(oddsRequest);
 
                 var parsedOdds = JsonConvert.DeserializeObject<Odds.Odds>(oddsResponse.Content);
                 odds.AddRange(parsedOdds.Api.Odds);
@@ -943,10 +943,10 @@ namespace Cronjob
         private static List<Fixtures.Fixture> GetFixtures(string apiUrl, string leagueId, string xRapidApiKey, string xRapidApiHost)
         {
             var fixturesUrl = new RestClient(apiUrl + "/v2/fixtures/league/" + leagueId);
-            var fixturesRequest = new RestRequest(Method.GET);
+            var fixturesRequest = new RestRequest();
             fixturesRequest.AddHeader("X-RAPIDAPI-KEY", xRapidApiKey);
             fixturesRequest.AddHeader("X-RAPIDAPI-HOST", xRapidApiHost);
-            IRestResponse fixturesResponse = fixturesUrl.Execute(fixturesRequest);
+            var fixturesResponse = fixturesUrl.Execute(fixturesRequest);
 
             var parsedFixtures = JsonConvert.DeserializeObject<Fixtures.Fixtures>(fixturesResponse.Content);
 
