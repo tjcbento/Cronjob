@@ -543,7 +543,12 @@ namespace Cronjob
 
             var parsedStandings = JsonConvert.DeserializeObject<Standings.Standings>(standingsResponse.Content);
 
-            return parsedStandings.Api.Standings[0];
+            if (parsedStandings.Api.Standings.Any())
+            {
+                return parsedStandings.Api.Standings[0];
+            }
+
+            return new List<Standings.Standing>();
         }
 
         private static void UpdateCumulativeScores(MySqlConnection connection, string leagueId)
