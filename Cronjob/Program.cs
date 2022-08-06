@@ -15,11 +15,13 @@ namespace Cronjob
 {
     public class Program
     {
+        public static string fixturesResponseAttachment = "";
+        public static StringBuilder logOutput = new StringBuilder();
+
         public static void Main()
         {
             Directory.CreateDirectory(@"/logs");
 
-            StringBuilder logOutput = new StringBuilder();
 
             try
             {
@@ -367,7 +369,7 @@ namespace Cronjob
                 UpdateCumulativeScores(connection, leagueId);
 
                 logOutput.AppendLine(String.Format("[{0}]       [-] Checking for missing odds", DateTime.Now.ToString()));
-                CheckForMissingOdds(logOutput, connection);
+                CheckForMissingOdds(connection);
 
                 if (fixtures.All(match => match.StatusShort == "FT") && !Convert.ToBoolean(globalConstants["EMAIL_LEAGUE_MANAGERS"]))
                 {
@@ -439,7 +441,7 @@ namespace Cronjob
                 logOutput.AppendLine(ex.ToString());
             }
 
-            ProcessLogs(logOutput.ToString());
+            ProcessLogs();
         }
 
         private static string FullSeason(string season)
@@ -624,7 +626,7 @@ namespace Cronjob
             return multipliers;
         }
 
-        private static void CheckForMissingOdds(StringBuilder logOutput, MySqlConnection connection)
+        private static void CheckForMissingOdds(MySqlConnection connection)
         {
             MySqlCommand missingOddsForCurrentMatchesCommand = new MySqlCommand("MissingOddsForCurrentMatches ", connection)
             {
@@ -646,13 +648,16 @@ namespace Cronjob
             missingOddsForCurrentMatchesReader.Close();
         }
 
-        private static void ProcessLogs(string logOutput)
+        private static void ProcessLogs()
         {
             string logOutputPath = "/logs/log_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".log";
+            string fixturesResponsePath = "/logs/fixtures_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".log";
+            string logOutputString = logOutput.ToString();
 
-            File.AppendAllText(logOutputPath, logOutput);
+            File.AppendAllText(logOutputPath, logOutputString);
+            File.AppendAllText(fixturesResponsePath, fixturesResponseAttachment);
 
-            if (logOutput.Contains("[!]"))
+            if (logOutputString.Contains("[!]"))
             {
                 var fromAddress = Environment.GetEnvironmentVariable("FROM_EMAIL");
                 string operatorEmails = Environment.GetEnvironmentVariable("OPERATOR_EMAILS");
@@ -676,6 +681,11 @@ namespace Cronjob
                 };
 
                 message.Attachments.Add(new Attachment(logOutputPath));
+
+                if (!String.IsNullOrEmpty(fixturesResponseAttachment))
+                {
+                    message.Attachments.Add(new Attachment(fixturesResponsePath));
+                }
 
                 smtp.Send(message);
             }
@@ -959,6 +969,7 @@ namespace Cronjob
             var fixturesResponse = fixturesUrl.Execute(fixturesRequest);
 
             var parsedFixtures = JsonConvert.DeserializeObject<Fixtures.Fixtures>(fixturesResponse.Content);
+            fixturesResponseAttachment = fixturesResponse.Content;
 
             return parsedFixtures.Api.Fixtures;
         }
