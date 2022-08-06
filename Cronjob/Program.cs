@@ -476,6 +476,11 @@ namespace Cronjob
 
         private static string ProcessForme(string forme)
         {
+            if (String.IsNullOrEmpty(forme))
+            {
+                return "-";
+            }
+
             return new string(forme.Replace('W', 'V').Replace('D', 'E').Replace('L', 'D').Reverse().ToArray());
         }
 
