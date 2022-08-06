@@ -651,7 +651,7 @@ namespace Cronjob
         private static void ProcessLogs()
         {
             string logOutputPath = "/logs/log_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".log";
-            string fixturesResponsePath = "/logs/fixtures_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".log";
+            string fixturesResponsePath = "/logs/fixtures_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".json";
             string logOutputString = logOutput.ToString();
 
             File.AppendAllText(logOutputPath, logOutputString);
