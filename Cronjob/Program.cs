@@ -462,7 +462,12 @@ namespace Cronjob
 
             var parsedVideos = JsonConvert.DeserializeObject<Videos.Videos>(youtubeResponse.Content);
 
-            return parsedVideos.Contents[0].Video.VideoId;
+            if (parsedVideos.Contents.Any())
+            {
+                return parsedVideos.Contents[0].Video.VideoId;
+            }
+
+            return null;
         }
 
         private static string GetQuery(Fixtures.Fixture match, string season)
