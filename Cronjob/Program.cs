@@ -22,7 +22,6 @@ namespace Cronjob
         {
             Directory.CreateDirectory(@"/logs");
 
-
             try
             {
                 logOutput.AppendLine(String.Format("[{0}]       [-] Update script starting", DateTime.Now.ToString()));
@@ -62,20 +61,20 @@ namespace Cronjob
                 string apiUrlYoutube = globalConstants["API_URL_YOUTUBE"];
                 string preferedBookmaker = globalConstants["PREFERED_BOOKMAKER"];
                 string xRapidApiKey = globalConstants["X_RAPID_API_KEY"];
-                string xRapidApiHostFootball = globalConstants["X_RAPID_API_HOST_FOOTBALL"];
+                string apiSportsKey = globalConstants["API_SPORTS_KEY"];
                 string xRapidApiHostYoutube = globalConstants["X_RAPID_API_HOST_YOUTUBE"];
                 string roundsImport = globalConstants["ROUNDS_IMPORT"];
 
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting current season from API", DateTime.Now.ToString()));
-                string season = GetSeason(apiUrlFootball, leagueId, xRapidApiKey, xRapidApiHostFootball);
+                string season = GetSeason(apiUrlFootball, leagueId, apiSportsKey);
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting fixtures from API", DateTime.Now.ToString()));
-                var fixtures = GetFixtures(apiUrlFootball, leagueId, xRapidApiKey, xRapidApiHostFootball);
+                var fixtures = GetFixtures(apiUrlFootball, leagueId, apiSportsKey);
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting odds from API", DateTime.Now.ToString()));
-                var odds = GetOdds(apiUrlFootball, leagueId, preferedBookmaker, xRapidApiKey, xRapidApiHostFootball);
+                var odds = GetOdds(apiUrlFootball, leagueId, preferedBookmaker, apiSportsKey);
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting teams from API", DateTime.Now.ToString()));
-                var teams = GetTeams(apiUrlFootball, leagueId, xRapidApiKey, xRapidApiHostFootball);
+                var teams = GetTeams(apiUrlFootball, leagueId, apiSportsKey);
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting standings from API", DateTime.Now.ToString()));
-                var standings = GetStandings(apiUrlFootball, leagueId, xRapidApiKey, xRapidApiHostFootball);
+                var standings = GetStandings(apiUrlFootball, leagueId, apiSportsKey);
 
                 MySqlCommand truncateStandingsCommand = new MySqlCommand("TruncateStandings", connection)
                 {
@@ -545,12 +544,11 @@ namespace Cronjob
             return leagues;
         }
 
-        private static List<Standings.Standing> GetStandings(string apiUrl, string leagueId, string xRapidApiKey, string xRapidApiHost)
+        private static List<Standings.Standing> GetStandings(string apiUrl, string leagueId, string apiSportsKey)
         {
-            var leaguesUrl = new RestClient(apiUrl + "/v2/leagueTable/" + leagueId);
+            var leaguesUrl = new RestClient(apiUrl + "/leagueTable/" + leagueId);
             var leaguesRequest = new RestRequest();
-            leaguesRequest.AddHeader("X-RAPIDAPI-KEY", xRapidApiKey);
-            leaguesRequest.AddHeader("X-RAPIDAPI-HOST", xRapidApiHost);
+            leaguesRequest.AddHeader("X-RAPIDAPI-KEY", apiSportsKey);
             var standingsResponse = leaguesUrl.Execute(leaguesRequest);
 
             var parsedStandings = JsonConvert.DeserializeObject<Standings.Standings>(standingsResponse.Content);
@@ -726,12 +724,11 @@ namespace Cronjob
             return queriedTeams;
         }
 
-        private static List<Teams.Team> GetTeams(string apiUrl, string leagueId, string xRapidApiKey, string xRapidApiHost)
+        private static List<Teams.Team> GetTeams(string apiUrl, string leagueId, string apiSportsKey)
         {
-            var teamsUrl = new RestClient(apiUrl + "/v2/teams/league/" + leagueId);
+            var teamsUrl = new RestClient(apiUrl + "/teams/league/" + leagueId);
             var teamsRequest = new RestRequest();
-            teamsRequest.AddHeader("X-RAPIDAPI-KEY", xRapidApiKey);
-            teamsRequest.AddHeader("X-RAPIDAPI-HOST", xRapidApiHost);
+            teamsRequest.AddHeader("X-RAPIDAPI-KEY", apiSportsKey);
             var teamsResponse = teamsUrl.Execute(teamsRequest);
 
             var parsedTeams = JsonConvert.DeserializeObject<Teams.Teams>(teamsResponse.Content);
@@ -890,12 +887,11 @@ namespace Cronjob
             return globalConstants;
         }
 
-        private static string GetSeason(string apiUrl, string leagueId, string xRapidApiKey, string xRapidApiHost)
+        private static string GetSeason(string apiUrl, string leagueId, string apiSportsKey)
         {
-            var leaguesUrl = new RestClient(apiUrl + "/v2/leagues/league/" + leagueId);
+            var leaguesUrl = new RestClient(apiUrl + "/leagues/league/" + leagueId);
             var leaguesRequest = new RestRequest();
-            leaguesRequest.AddHeader("X-RAPIDAPI-KEY", xRapidApiKey);
-            leaguesRequest.AddHeader("X-RAPIDAPI-HOST", xRapidApiHost);
+            leaguesRequest.AddHeader("X-RAPIDAPI-KEY", apiSportsKey);
             var leaguesResponse = leaguesUrl.Execute(leaguesRequest);
 
             var parsedLeagues = JsonConvert.DeserializeObject<Leagues.Leagues>(leaguesResponse.Content);
@@ -921,13 +917,12 @@ namespace Cronjob
             return null;
         }
 
-        private static Dictionary<string, SimpleOdd.SimpleOdd> GetOdds(string apiUrl, string leagueId, string bookmakerId, string xRapidApiKey, string xRapidApiHost)
+        private static Dictionary<string, SimpleOdd.SimpleOdd> GetOdds(string apiUrl, string leagueId, string bookmakerId, string apiSportsKey)
         {
             int page = 1;
-            var oddsUrl = new RestClient(apiUrl + "/v2/odds/league/" + leagueId + "/label/1");
+            var oddsUrl = new RestClient(apiUrl + "/odds/league/" + leagueId + "/label/1");
             var oddsRequest = new RestRequest();
-            oddsRequest.AddHeader("X-RAPIDAPI-KEY", xRapidApiKey);
-            oddsRequest.AddHeader("X-RAPIDAPI-HOST", xRapidApiHost);
+            oddsRequest.AddHeader("X-RAPIDAPI-KEY", apiSportsKey);
 
             List<Odd> odds = new List<Odd>();
 
@@ -965,12 +960,11 @@ namespace Cronjob
                 .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
         }
 
-        private static List<Fixtures.Fixture> GetFixtures(string apiUrl, string leagueId, string xRapidApiKey, string xRapidApiHost)
+        private static List<Fixtures.Fixture> GetFixtures(string apiUrl, string leagueId, string apiSportsKey)
         {
-            var fixturesUrl = new RestClient(apiUrl + "/v2/fixtures/league/" + leagueId);
+            var fixturesUrl = new RestClient(apiUrl + "/fixtures/league/" + leagueId);
             var fixturesRequest = new RestRequest();
-            fixturesRequest.AddHeader("X-RAPIDAPI-KEY", xRapidApiKey);
-            fixturesRequest.AddHeader("X-RAPIDAPI-HOST", xRapidApiHost);
+            fixturesRequest.AddHeader("X-RAPIDAPI-KEY", apiSportsKey);
             var fixturesResponse = fixturesUrl.Execute(fixturesRequest);
 
             var parsedFixtures = JsonConvert.DeserializeObject<Fixtures.Fixtures>(fixturesResponse.Content);
