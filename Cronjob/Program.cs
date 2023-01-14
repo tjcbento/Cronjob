@@ -15,7 +15,11 @@ namespace Cronjob
 {
     public class Program
     {
+        public static string leaguesResponseAttachment = "";
         public static string fixturesResponseAttachment = "";
+        public static string oddsResponseAttachment = "";
+        public static string teamsResponseAttachment = "";
+        public static string standingsResponseAttachment = "";
         public static StringBuilder logOutput = new StringBuilder();
 
         public static void Main()
@@ -550,6 +554,7 @@ namespace Cronjob
             var leaguesRequest = new RestRequest();
             leaguesRequest.AddHeader("X-RAPIDAPI-KEY", apiSportsKey);
             var standingsResponse = leaguesUrl.Execute(leaguesRequest);
+            standingsResponseAttachment = standingsResponse.Content;
 
             var parsedStandings = JsonConvert.DeserializeObject<Standings.Standings>(standingsResponse.Content);
 
@@ -654,11 +659,19 @@ namespace Cronjob
         private static void ProcessLogs()
         {
             string logOutputPath = "/logs/log_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".log";
+            string leaguesResponsePath = "/logs/leagues_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".json";
             string fixturesResponsePath = "/logs/fixtures_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".json";
+            string oddsResponsePath = "/logs/odds_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".json";
+            string teamsResponsePath = "/logs/teams_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".json";
+            string standingsResponsePath = "/logs/standings_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".json";
             string logOutputString = logOutput.ToString();
 
             File.AppendAllText(logOutputPath, logOutputString);
+            File.AppendAllText(leaguesResponsePath, leaguesResponseAttachment);
             File.AppendAllText(fixturesResponsePath, fixturesResponseAttachment);
+            File.AppendAllText(oddsResponsePath, oddsResponseAttachment);
+            File.AppendAllText(teamsResponsePath, teamsResponseAttachment);
+            File.AppendAllText(standingsResponsePath, standingsResponseAttachment);
 
             if (logOutputString.Contains("[!]"))
             {
@@ -685,9 +698,25 @@ namespace Cronjob
 
                 message.Attachments.Add(new Attachment(logOutputPath));
 
+                if (!String.IsNullOrEmpty(leaguesResponseAttachment))
+                {
+                    message.Attachments.Add(new Attachment(leaguesResponsePath));
+                }
                 if (!String.IsNullOrEmpty(fixturesResponseAttachment))
                 {
                     message.Attachments.Add(new Attachment(fixturesResponsePath));
+                }
+                if (!String.IsNullOrEmpty(oddsResponseAttachment))
+                {
+                    message.Attachments.Add(new Attachment(oddsResponsePath));
+                }
+                if (!String.IsNullOrEmpty(teamsResponseAttachment))
+                {
+                    message.Attachments.Add(new Attachment(teamsResponsePath));
+                }
+                if (!String.IsNullOrEmpty(standingsResponseAttachment))
+                {
+                    message.Attachments.Add(new Attachment(standingsResponsePath));
                 }
 
                 smtp.Send(message);
@@ -730,6 +759,7 @@ namespace Cronjob
             var teamsRequest = new RestRequest();
             teamsRequest.AddHeader("X-RAPIDAPI-KEY", apiSportsKey);
             var teamsResponse = teamsUrl.Execute(teamsRequest);
+            teamsResponseAttachment = teamsResponse.Content;
 
             var parsedTeams = JsonConvert.DeserializeObject<Teams.Teams>(teamsResponse.Content);
 
@@ -893,6 +923,7 @@ namespace Cronjob
             var leaguesRequest = new RestRequest();
             leaguesRequest.AddHeader("X-RAPIDAPI-KEY", apiSportsKey);
             var leaguesResponse = leaguesUrl.Execute(leaguesRequest);
+            leaguesResponseAttachment = leaguesResponse.Content;
 
             var parsedLeagues = JsonConvert.DeserializeObject<Leagues.Leagues>(leaguesResponse.Content);
 
@@ -919,17 +950,20 @@ namespace Cronjob
 
         private static Dictionary<string, SimpleOdd.SimpleOdd> GetOdds(string apiUrl, string leagueId, string bookmakerId, string apiSportsKey)
         {
+            StringBuilder fullResponse = new StringBuilder();
             int page = 1;
             var oddsUrl = new RestClient(apiUrl + "/odds/league/" + leagueId + "/label/1");
             var oddsRequest = new RestRequest();
             oddsRequest.AddHeader("X-RAPIDAPI-KEY", apiSportsKey);
 
             List<Odd> odds = new List<Odd>();
+            string oddsResponseAttachment;
 
             while (true)
             {
                 oddsRequest.AddOrUpdateParameter("page", page.ToString());
                 var oddsResponse = oddsUrl.Execute(oddsRequest);
+                fullResponse.AppendLine(oddsResponse.Content);
 
                 var parsedOdds = JsonConvert.DeserializeObject<Odds.Odds>(oddsResponse.Content);
                 odds.AddRange(parsedOdds.Api.Odds);
@@ -941,6 +975,8 @@ namespace Cronjob
 
                 page++;
             }
+
+            oddsResponseAttachment = fullResponse.ToString();
 
             return odds
                 .ToDictionary(
@@ -966,9 +1002,9 @@ namespace Cronjob
             var fixturesRequest = new RestRequest();
             fixturesRequest.AddHeader("X-RAPIDAPI-KEY", apiSportsKey);
             var fixturesResponse = fixturesUrl.Execute(fixturesRequest);
+            fixturesResponseAttachment = fixturesResponse.Content;
 
             var parsedFixtures = JsonConvert.DeserializeObject<Fixtures.Fixtures>(fixturesResponse.Content);
-            fixturesResponseAttachment = fixturesResponse.Content;
 
             return parsedFixtures.Api.Fixtures;
         }
