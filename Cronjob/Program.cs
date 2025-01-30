@@ -15,7 +15,11 @@ namespace Cronjob
 {
     public class Program
     {
+        public static string leaguesResponseAttachment = "";
         public static string fixturesResponseAttachment = "";
+        public static string oddsResponseAttachment = "";
+        public static string teamsResponseAttachment = "";
+        public static string standingsResponseAttachment = "";
         public static StringBuilder logOutput = new StringBuilder();
 
         public static void Main()
@@ -455,7 +459,6 @@ namespace Cronjob
             var youtubeUrl = new RestClient(apiUrlYoutube);
             var youtubeRequest = new RestRequest();
             youtubeRequest.AddHeader("X-RAPIDAPI-KEY", xRapidApiKey);
-            youtubeRequest.AddHeader("X-RAPIDAPI-HOST", xRapidApiHost);
             var query = GetQuery(match, season);
             youtubeRequest.AddQueryParameter("query", query);
             var youtubeResponse = youtubeUrl.Execute(youtubeRequest);
@@ -550,8 +553,8 @@ namespace Cronjob
             var leaguesUrl = new RestClient(apiUrl + "/v2/leagueTable/" + leagueId);
             var leaguesRequest = new RestRequest();
             leaguesRequest.AddHeader("X-RAPIDAPI-KEY", xRapidApiKey);
-            leaguesRequest.AddHeader("X-RAPIDAPI-HOST", xRapidApiHost);
             var standingsResponse = leaguesUrl.Execute(leaguesRequest);
+            standingsResponseAttachment = standingsResponse.Content;
 
             var parsedStandings = JsonConvert.DeserializeObject<Standings.Standings>(standingsResponse.Content);
 
@@ -656,18 +659,25 @@ namespace Cronjob
         private static void ProcessLogs()
         {
             string logOutputPath = "/logs/log_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".log";
+            string leaguesResponsePath = "/logs/leagues_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".json";
             string fixturesResponsePath = "/logs/fixtures_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".json";
+            string oddsResponsePath = "/logs/odds_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".json";
+            string teamsResponsePath = "/logs/teams_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".json";
+            string standingsResponsePath = "/logs/standings_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".json";
             string logOutputString = logOutput.ToString();
 
             File.AppendAllText(logOutputPath, logOutputString);
+            File.AppendAllText(leaguesResponsePath, leaguesResponseAttachment);
             File.AppendAllText(fixturesResponsePath, fixturesResponseAttachment);
+            File.AppendAllText(oddsResponsePath, oddsResponseAttachment);
+            File.AppendAllText(teamsResponsePath, teamsResponseAttachment);
+            File.AppendAllText(standingsResponsePath, standingsResponseAttachment);
 
             if (logOutputString.Contains("[!]"))
             {
                 var fromAddress = Environment.GetEnvironmentVariable("FROM_EMAIL");
                 string operatorEmails = Environment.GetEnvironmentVariable("OPERATOR_EMAILS");
                 string emailPassword = Environment.GetEnvironmentVariable("EMAIL_PASSWORD");
-
                 var smtp = new SmtpClient
                 {
                     Host = "smtp.gmail.com",
@@ -677,7 +687,6 @@ namespace Cronjob
                     UseDefaultCredentials = false,
                     Credentials = new NetworkCredential(fromAddress, emailPassword)
                 };
-
                 using var message = new MailMessage(fromAddress, operatorEmails)
                 {
                     Subject = "Errors in job!",
@@ -687,9 +696,25 @@ namespace Cronjob
 
                 message.Attachments.Add(new Attachment(logOutputPath));
 
+                if (!String.IsNullOrEmpty(leaguesResponseAttachment))
+                {
+                    message.Attachments.Add(new Attachment(leaguesResponsePath));
+                }
                 if (!String.IsNullOrEmpty(fixturesResponseAttachment))
                 {
                     message.Attachments.Add(new Attachment(fixturesResponsePath));
+                }
+                if (!String.IsNullOrEmpty(oddsResponseAttachment))
+                {
+                    message.Attachments.Add(new Attachment(oddsResponsePath));
+                }
+                if (!String.IsNullOrEmpty(teamsResponseAttachment))
+                {
+                    message.Attachments.Add(new Attachment(teamsResponsePath));
+                }
+                if (!String.IsNullOrEmpty(standingsResponseAttachment))
+                {
+                    message.Attachments.Add(new Attachment(standingsResponsePath));
                 }
 
                 smtp.Send(message);
@@ -731,8 +756,8 @@ namespace Cronjob
             var teamsUrl = new RestClient(apiUrl + "/v2/teams/league/" + leagueId);
             var teamsRequest = new RestRequest();
             teamsRequest.AddHeader("X-RAPIDAPI-KEY", xRapidApiKey);
-            teamsRequest.AddHeader("X-RAPIDAPI-HOST", xRapidApiHost);
             var teamsResponse = teamsUrl.Execute(teamsRequest);
+            teamsResponseAttachment = teamsResponse.Content;
 
             var parsedTeams = JsonConvert.DeserializeObject<Teams.Teams>(teamsResponse.Content);
 
@@ -895,8 +920,8 @@ namespace Cronjob
             var leaguesUrl = new RestClient(apiUrl + "/v2/leagues/league/" + leagueId);
             var leaguesRequest = new RestRequest();
             leaguesRequest.AddHeader("X-RAPIDAPI-KEY", xRapidApiKey);
-            leaguesRequest.AddHeader("X-RAPIDAPI-HOST", xRapidApiHost);
             var leaguesResponse = leaguesUrl.Execute(leaguesRequest);
+            leaguesResponseAttachment = leaguesResponse.Content;
 
             var parsedLeagues = JsonConvert.DeserializeObject<Leagues.Leagues>(leaguesResponse.Content);
 
@@ -923,18 +948,20 @@ namespace Cronjob
 
         private static Dictionary<string, SimpleOdd.SimpleOdd> GetOdds(string apiUrl, string leagueId, string bookmakerId, string xRapidApiKey, string xRapidApiHost)
         {
+            StringBuilder fullResponse = new StringBuilder();
             int page = 1;
             var oddsUrl = new RestClient(apiUrl + "/v2/odds/league/" + leagueId + "/label/1");
             var oddsRequest = new RestRequest();
             oddsRequest.AddHeader("X-RAPIDAPI-KEY", xRapidApiKey);
-            oddsRequest.AddHeader("X-RAPIDAPI-HOST", xRapidApiHost);
 
             List<Odd> odds = new List<Odd>();
+            string oddsResponseAttachment;
 
             while (true)
             {
                 oddsRequest.AddOrUpdateParameter("page", page.ToString());
                 var oddsResponse = oddsUrl.Execute(oddsRequest);
+                fullResponse.AppendLine(oddsResponse.Content);
 
                 var parsedOdds = JsonConvert.DeserializeObject<Odds.Odds>(oddsResponse.Content);
                 odds.AddRange(parsedOdds.Api.Odds);
@@ -946,6 +973,8 @@ namespace Cronjob
 
                 page++;
             }
+
+            oddsResponseAttachment = fullResponse.ToString();
 
             return odds
                 .ToDictionary(
@@ -970,8 +999,8 @@ namespace Cronjob
             var fixturesUrl = new RestClient(apiUrl + "/v2/fixtures/league/" + leagueId);
             var fixturesRequest = new RestRequest();
             fixturesRequest.AddHeader("X-RAPIDAPI-KEY", xRapidApiKey);
-            fixturesRequest.AddHeader("X-RAPIDAPI-HOST", xRapidApiHost);
             var fixturesResponse = fixturesUrl.Execute(fixturesRequest);
+            fixturesResponseAttachment = fixturesResponse.Content;
 
             var parsedFixtures = JsonConvert.DeserializeObject<Fixtures.Fixtures>(fixturesResponse.Content);
             fixturesResponseAttachment = fixturesResponse.Content;
