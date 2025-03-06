@@ -66,20 +66,19 @@ namespace Cronjob
                 string apiUrlYoutube = globalConstants["API_URL_YOUTUBE"];
                 string preferedBookmaker = globalConstants["PREFERED_BOOKMAKER"];
                 string xRapidApiKey = globalConstants["X_RAPID_API_KEY"];
-                string xRapidApiHostFootball = globalConstants["X_RAPID_API_HOST_FOOTBALL"];
                 string xRapidApiHostYoutube = globalConstants["X_RAPID_API_HOST_YOUTUBE"];
                 string roundsImport = globalConstants["ROUNDS_IMPORT"];
 
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting current season from API", DateTime.Now.ToString()));
-                string season = GetSeason(apiUrlFootball, leagueId, xRapidApiKey, xRapidApiHostFootball);
+                string season = GetSeason(apiUrlFootball, leagueId, xRapidApiKey);
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting fixtures from API", DateTime.Now.ToString()));
-                var fixtures = GetFixtures(apiUrlFootball, leagueId, xRapidApiKey, xRapidApiHostFootball);
+                var fixtures = GetFixtures(apiUrlFootball, leagueId, xRapidApiKey);
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting odds from API", DateTime.Now.ToString()));
-                var odds = GetOdds(apiUrlFootball, leagueId, preferedBookmaker, xRapidApiKey, xRapidApiHostFootball);
+                var odds = GetOdds(apiUrlFootball, leagueId, preferedBookmaker, xRapidApiKey);
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting teams from API", DateTime.Now.ToString()));
-                var teams = GetTeams(apiUrlFootball, leagueId, xRapidApiKey, xRapidApiHostFootball);
+                var teams = GetTeams(apiUrlFootball, leagueId, xRapidApiKey);
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting standings from API", DateTime.Now.ToString()));
-                var standings = GetStandings(apiUrlFootball, leagueId, xRapidApiKey, xRapidApiHostFootball);
+                var standings = GetStandings(apiUrlFootball, leagueId, xRapidApiKey);
 
                 MySqlCommand truncateStandingsCommand = new MySqlCommand("TruncateStandings", connection)
                 {
@@ -548,7 +547,7 @@ namespace Cronjob
             return leagues;
         }
 
-        private static List<Standings.Standing> GetStandings(string apiUrl, string leagueId, string xRapidApiKey, string xRapidApiHost)
+        private static List<Standings.Standing> GetStandings(string apiUrl, string leagueId, string xRapidApiKey)
         {
             var leaguesUrl = new RestClient(apiUrl + "/v2/leagueTable/" + leagueId);
             var leaguesRequest = new RestRequest();
@@ -613,6 +612,19 @@ namespace Cronjob
 
                 updateCumulativeScoresCommand.ExecuteNonQuery();
             }
+
+#pragma warning disable IDE0059 // Unnecessary assignment of a value
+            MySqlCommand updateSeasonBettingVolumeCommand = new MySqlCommand();
+#pragma warning restore IDE0059 // Unnecessary assignment of a value
+
+            updateSeasonBettingVolumeCommand = new MySqlCommand("UpdateSeasonBettingVolume", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            updateSeasonBettingVolumeCommand.Parameters.Add(new MySqlParameter("LeagueID", leagueId));
+
+            updateSeasonBettingVolumeCommand.ExecuteNonQuery();
         }
 
         private static Dictionary<int, double?> GetMultipliers(MySqlConnection connection)
@@ -751,7 +763,7 @@ namespace Cronjob
             return queriedTeams;
         }
 
-        private static List<Teams.Team> GetTeams(string apiUrl, string leagueId, string xRapidApiKey, string xRapidApiHost)
+        private static List<Teams.Team> GetTeams(string apiUrl, string leagueId, string xRapidApiKey)
         {
             var teamsUrl = new RestClient(apiUrl + "/v2/teams/league/" + leagueId);
             var teamsRequest = new RestRequest();
@@ -915,7 +927,7 @@ namespace Cronjob
             return globalConstants;
         }
 
-        private static string GetSeason(string apiUrl, string leagueId, string xRapidApiKey, string xRapidApiHost)
+        private static string GetSeason(string apiUrl, string leagueId, string xRapidApiKey)
         {
             var leaguesUrl = new RestClient(apiUrl + "/v2/leagues/league/" + leagueId);
             var leaguesRequest = new RestRequest();
@@ -946,7 +958,7 @@ namespace Cronjob
             return null;
         }
 
-        private static Dictionary<string, SimpleOdd.SimpleOdd> GetOdds(string apiUrl, string leagueId, string bookmakerId, string xRapidApiKey, string xRapidApiHost)
+        private static Dictionary<string, SimpleOdd.SimpleOdd> GetOdds(string apiUrl, string leagueId, string bookmakerId, string xRapidApiKey)
         {
             StringBuilder fullResponse = new StringBuilder();
             int page = 1;
@@ -994,7 +1006,7 @@ namespace Cronjob
                 .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
         }
 
-        private static List<Fixtures.Fixture> GetFixtures(string apiUrl, string leagueId, string xRapidApiKey, string xRapidApiHost)
+        private static List<Fixtures.Fixture> GetFixtures(string apiUrl, string leagueId, string xRapidApiKey)
         {
             var fixturesUrl = new RestClient(apiUrl + "/v2/fixtures/league/" + leagueId);
             var fixturesRequest = new RestRequest();
