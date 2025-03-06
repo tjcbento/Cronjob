@@ -6,7 +6,7 @@
 				<th align="center" scope="col" style="box-sizing: border-box;text-align: inherit;padding: .3rem;vertical-align: bottom;border-top: 1px solid #dee2e6;border-bottom: 2px solid #dee2e6;background-color: #fff!important;">Posição</th>
 				<th align="center" scope="col" style="box-sizing: border-box;text-align: inherit;padding: .3rem;vertical-align: bottom;border-top: 1px solid #dee2e6;border-bottom: 2px solid #dee2e6;background-color: #fff!important;">Nome</th>
 				<th align="center" scope="col" style="box-sizing: border-box;text-align: inherit;padding: .3rem;vertical-align: bottom;border-top: 1px solid #dee2e6;border-bottom: 2px solid #dee2e6;background-color: #fff!important;">Pontos</th>
-				<th scope="col" style="box-sizing: border-box;text-align: inherit;padding: .3rem;vertical-align: bottom;border-top: 1px solid #dee2e6;border-bottom: 2px solid #dee2e6;background-color: #fff!important;">Apostas Acertadas</th>
+				<th scope="col" style="box-sizing: border-box;text-align: inherit;padding: .3rem;vertical-align: bottom;border-top: 1px solid #dee2e6;border-bottom: 2px solid #dee2e6;background-color: #fff!important;">Apostas Certas</th>
 			</tr>
 		</thead>
 		<tbody style="box-sizing: border-box;">
