@@ -286,7 +286,7 @@ namespace Cronjob
                     if (match.StatusShort == "FT")
                     {
                         result = ProcessResult(match.GoalsHomeTeam, match.GoalsAwayTeam);
-                        videoCode = GetVideo(apiUrlYoutube, match, season, xRapidApiKey, xRapidApiHostYoutube);
+                        videoCode = GetVideo(apiUrlYoutube, match, season, xRapidApiKey);
                     }
 
                     command.Parameters.Add(new MySqlParameter("LeagueID", leagueId));
@@ -453,7 +453,7 @@ namespace Cronjob
             return String.Join("/", shortSeason, shortSeason + 1);
         }
 
-        private static string GetVideo(string apiUrlYoutube, Fixtures.Fixture match, string season, string xRapidApiKey, string xRapidApiHost)
+        private static string GetVideo(string apiUrlYoutube, Fixtures.Fixture match, string season, string xRapidApiKey)
         {
             var youtubeUrl = new RestClient(apiUrlYoutube);
             var youtubeRequest = new RestRequest();
