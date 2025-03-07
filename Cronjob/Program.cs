@@ -66,7 +66,6 @@ namespace Cronjob
                 string apiUrlYoutube = globalConstants["API_URL_YOUTUBE"];
                 string preferedBookmaker = globalConstants["PREFERED_BOOKMAKER"];
                 string xRapidApiKey = globalConstants["X_RAPID_API_KEY"];
-                string xRapidApiHostYoutube = globalConstants["X_RAPID_API_HOST_YOUTUBE"];
                 string roundsImport = globalConstants["ROUNDS_IMPORT"];
 
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting current season from API", DateTime.Now.ToString()));
