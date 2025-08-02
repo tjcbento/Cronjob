@@ -7,10 +7,10 @@
         "DB_PASSWORD": "123pardal123",
         "OPERATOR_EMAILS": "tjc.bento@gmail.com",
         "DOTNET_ENVIRONMENT": "Development",
-        "DB_PORT": "3308",
+        "DB_PORT": "3307",
         "EMAIL_PASSWORD": "penaltyTeam2016",
         "DB_USER": "root",
-        "DB_URL": "penalty.bet",
+        "DB_URL": "192.168.1.5",
         "FROM_EMAIL": "penalty.bot@gmail.com"
       }
     },
@@ -20,7 +20,7 @@
         "DB_DATABASE": "PenaltyV2",
         "DB_PASSWORD": "123pardal123",
         "OPERATOR_EMAILS": "penalty.bot@gmail.com",
-        "DB_PORT": "3308",
+        "DB_PORT": "3307",
         "EMAIL_PASSWORD": "penaltyTeam2016",
         "DB_USER": "root",
         "DB_URL": "penalty.bet",

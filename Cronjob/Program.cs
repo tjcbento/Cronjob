@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Mail;
 using System.Text;
+using Fixtures;
 using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
 using Odds;
@@ -61,24 +62,15 @@ namespace Cronjob
 
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting global constants", DateTime.Now.ToString()));
                 string leagueId = globalConstants["LEAGUE_ID"];
-                string apiUrlFootball = globalConstants["API_URL_FOOTBALL"];
-                string apiUrlYoutube = globalConstants["API_URL_YOUTUBE"];
-                string preferedBookmaker = globalConstants["PREFERED_BOOKMAKER"];
-                string xRapidApiKey = globalConstants["X_RAPID_API_KEY"];
-                string apiSportsKey = globalConstants["API_SPORTS_KEY"];
-                string xRapidApiHostYoutube = globalConstants["X_RAPID_API_HOST_YOUTUBE"];
+                string apiSportsKey = globalConstants["X-APISPORTS-KEY"];
                 string roundsImport = globalConstants["ROUNDS_IMPORT"];
 
-                logOutput.AppendLine(String.Format("[{0}]       [-] Getting current season from API", DateTime.Now.ToString()));
-                string season = GetSeason(apiUrlFootball, leagueId, apiSportsKey);
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting fixtures from API", DateTime.Now.ToString()));
-                var fixtures = GetFixtures(apiUrlFootball, leagueId, apiSportsKey);
+                var fixtures = GetFixtures(apiSportsKey);
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting odds from API", DateTime.Now.ToString()));
-                var odds = GetOdds(apiUrlFootball, leagueId, preferedBookmaker, apiSportsKey);
+                var odds = GetOdds(apiSportsKey);
                 logOutput.AppendLine(String.Format("[{0}]       [-] Getting teams from API", DateTime.Now.ToString()));
-                var teams = GetTeams(apiUrlFootball, leagueId, apiSportsKey);
-                logOutput.AppendLine(String.Format("[{0}]       [-] Getting standings from API", DateTime.Now.ToString()));
-                var standings = GetStandings(apiUrlFootball, leagueId, apiSportsKey);
+                var teams = GetTeams(apiSportsKey);
 
                 MySqlCommand truncateStandingsCommand = new MySqlCommand("TruncateStandings", connection)
                 {
@@ -87,35 +79,6 @@ namespace Cronjob
 
                 logOutput.AppendLine(String.Format("[{0}]       [+] Truncating standings", DateTime.Now.ToString()));
                 truncateStandingsCommand.ExecuteNonQuery();
-
-                logOutput.AppendLine(String.Format("[{0}]       [-] Updating standings", DateTime.Now.ToString()));
-                foreach (var standing in standings)
-                {
-                    MySqlCommand updateStandingCommand = new MySqlCommand("UpdateStanding", connection)
-                    {
-                        CommandType = CommandType.StoredProcedure
-                    };
-
-                    updateStandingCommand.Parameters.Add(new MySqlParameter("TeamId", standing.TeamId));
-                    updateStandingCommand.Parameters.Add(new MySqlParameter("Position", standing.Position));
-                    updateStandingCommand.Parameters.Add(new MySqlParameter("Points", standing.Points));
-                    updateStandingCommand.Parameters.Add(new MySqlParameter("Forme", ProcessForme(standing.Forme)));
-                    updateStandingCommand.Parameters.Add(new MySqlParameter("MatchesPlayed", standing.All.MatchesPlayed));
-                    updateStandingCommand.Parameters.Add(new MySqlParameter("Win", standing.All.Win));
-                    updateStandingCommand.Parameters.Add(new MySqlParameter("Draw", standing.All.Draw));
-                    updateStandingCommand.Parameters.Add(new MySqlParameter("Lose", standing.All.Lose));
-                    updateStandingCommand.Parameters.Add(new MySqlParameter("GoalsFor", standing.All.GoalsFor));
-                    updateStandingCommand.Parameters.Add(new MySqlParameter("GoalsAgainst", standing.All.GoalsAgainst));
-
-                    logOutput.AppendLine(String.Format(
-                        "[{0}]       [+] Adding standing for TeamId='{1}'",
-                        new object[]
-                        {
-                            DateTime.Now.ToString(),
-                            standing.TeamId
-                        }));
-                    updateStandingCommand.ExecuteNonQuery();
-                }
 
                 MySqlCommand deleteOldHistoryOddsCommand = new MySqlCommand("DeleteOldHistoryOdds", connection)
                 {
@@ -153,14 +116,14 @@ namespace Cronjob
                 {
                     MySqlCommand updateTeamsCommand = new MySqlCommand();
 
-                    if (queriedTeams.Contains(team.TeamId))
+                    if (queriedTeams.Contains(team.Id))
                     {
                         logOutput.AppendLine(String.Format(
                         "[{0}]       [+] Updating team for TeamId='{1}'",
                         new object[]
                         {
                             DateTime.Now.ToString(),
-                            team.TeamId
+                            team.Id
                         }));
                         updateTeamsCommand = new MySqlCommand("UpdateTeam", connection)
                         {
@@ -174,7 +137,7 @@ namespace Cronjob
                         new object[]
                         {
                             DateTime.Now.ToString(),
-                            team.TeamId
+                            team.Id
                         }));
                         updateTeamsCommand = new MySqlCommand("InsertTeam", connection)
                         {
@@ -182,9 +145,9 @@ namespace Cronjob
                         };
                     }
 
-                    updateTeamsCommand.Parameters.Add(new MySqlParameter("TeamId", team.TeamId));
+                    updateTeamsCommand.Parameters.Add(new MySqlParameter("TeamId", team.Id));
                     updateTeamsCommand.Parameters.Add(new MySqlParameter("Name", team.Name));
-                    updateTeamsCommand.Parameters.Add(new MySqlParameter("LogoUri", team.LogoUri));
+                    updateTeamsCommand.Parameters.Add(new MySqlParameter("LogoUri", team.Logo));
 
                     updateTeamsCommand.ExecuteNonQuery();
                 }
@@ -194,20 +157,20 @@ namespace Cronjob
                 {
                     MySqlCommand command = new MySqlCommand();
 
-                    if (!match.Round.Contains(roundsImport))
+                    if (!match.League.Round.Contains(roundsImport))
                     {
                         logOutput.AppendLine(String.Format(
-                                "[{0}]       [-] Skipping match update for FixtureId='{1}' (Not interested in matches for round '" + match.Round + "')",
+                                "[{0}]       [-] Skipping match update for FixtureId='{1}' (Not interested in matches for round '" + match.League.Round + "')",
                                 new object[]
                                 {
                                 DateTime.Now.ToString(),
-                                match.FixtureId
+                                match.FixtureInfo.FixtureId
                                 }));
 
                         continue;
                     }
 
-                    if (queriedFixtures.TryGetValue(match.FixtureId, out QueriedMatch.QueriedMatch queriedMatch))
+                    if (queriedFixtures.TryGetValue(match.FixtureInfo.FixtureId, out QueriedMatch.QueriedMatch queriedMatch))
                     {
                         if (!queriedMatch.RequiresUpdate)
                         {
@@ -216,7 +179,7 @@ namespace Cronjob
                                 new object[]
                                 {
                                 DateTime.Now.ToString(),
-                                match.FixtureId
+                                match.FixtureInfo.FixtureId
                                 }));
 
                             continue;
@@ -232,7 +195,7 @@ namespace Cronjob
                             new object[]
                             {
                             DateTime.Now.ToString(),
-                            match.FixtureId
+                            match.FixtureInfo.FixtureId
                             }));
                     }
                     else
@@ -247,14 +210,14 @@ namespace Cronjob
                            new object[]
                            {
                             DateTime.Now.ToString(),
-                            match.FixtureId
+                            match.FixtureInfo.FixtureId
                            }));
                     }
 
                     double? oddHome = null;
                     double? oddDraw = null;
                     double? oddAway = null;
-                    if (odds.TryGetValue(match.FixtureId, out SimpleOdd.SimpleOdd odd))
+                    if (odds.TryGetValue(match.FixtureInfo.FixtureId, out SimpleOdd.SimpleOdd odd))
                     {
                         oddHome = odd.OddHome;
                         oddDraw = odd.OddDraw;
@@ -283,30 +246,29 @@ namespace Cronjob
 
                     string result = null;
                     string videoCode = null;
-                    if (match.StatusShort == "FT")
+                    if (match.FixtureInfo.Status.Short == "FT")
                     {
-                        result = ProcessResult(match.GoalsHomeTeam, match.GoalsAwayTeam);
-                        videoCode = GetVideo(apiUrlYoutube, match, season, xRapidApiKey, xRapidApiHostYoutube);
+                        result = ProcessResult(match.Goals.Home, match.Goals.Away);
                     }
 
                     command.Parameters.Add(new MySqlParameter("LeagueID", leagueId));
-                    command.Parameters.Add(new MySqlParameter("Matchday", match.Round.Split('-')[1][1..]));
-                    command.Parameters.Add(new MySqlParameter("Multiplier", multiplier[Convert.ToInt32(match.Round.Split('-')[1][1..])]));
-                    command.Parameters.Add(new MySqlParameter("Hometeam", match.HomeTeam.TeamName));
-                    command.Parameters.Add(new MySqlParameter("Hometeamgoals", match.GoalsHomeTeam));
-                    command.Parameters.Add(new MySqlParameter("Awayteam", match.AwayTeam.TeamName));
-                    command.Parameters.Add(new MySqlParameter("Awayteamgoals", match.GoalsAwayTeam));
-                    command.Parameters.Add(new MySqlParameter("Idawayteam", match.AwayTeam.TeamId));
-                    command.Parameters.Add(new MySqlParameter("Idhometeam", match.HomeTeam.TeamId));
-                    command.Parameters.Add(new MySqlParameter("Status", match.StatusShort));
-                    command.Parameters.Add(new MySqlParameter("Competitionyear", season));
-                    command.Parameters.Add(new MySqlParameter("UtcDate", match.EventDate.UtcDateTime.AddHours(DateTimeOffset.Now.Offset.TotalHours)));
-                    command.Parameters.Add(new MySqlParameter("IdmatchAPI", match.FixtureId));
+                    command.Parameters.Add(new MySqlParameter("Matchday", match.League.Round.Split('-')[1][1..]));
+                    command.Parameters.Add(new MySqlParameter("Multiplier", multiplier[Convert.ToInt32(match.League.Round.Split('-')[1][1..])]));
+                    command.Parameters.Add(new MySqlParameter("Hometeam", match.Teams.HomeTeam.Name));
+                    command.Parameters.Add(new MySqlParameter("Hometeamgoals", match.Goals.Home));
+                    command.Parameters.Add(new MySqlParameter("Awayteam", match.Teams.AwayTeam.Name));
+                    command.Parameters.Add(new MySqlParameter("Awayteamgoals", match.Goals.Away));
+                    command.Parameters.Add(new MySqlParameter("Idawayteam", match.Teams.AwayTeam.Id));
+                    command.Parameters.Add(new MySqlParameter("Idhometeam", match.Teams.HomeTeam.Id));
+                    command.Parameters.Add(new MySqlParameter("Status", match.FixtureInfo.Status.Short));
+                    command.Parameters.Add(new MySqlParameter("Competitionyear", "2025"));
+                    command.Parameters.Add(new MySqlParameter("UtcDate", match.FixtureInfo.EventDate.AddHours(DateTimeOffset.Now.Offset.TotalHours)));
+                    command.Parameters.Add(new MySqlParameter("IdmatchAPI", match.FixtureInfo.FixtureId));
                     command.Parameters.Add(new MySqlParameter("Result1", result));
                     command.Parameters.Add(new MySqlParameter("Oddshome", oddHome));
                     command.Parameters.Add(new MySqlParameter("Oddsdraw", oddDraw));
                     command.Parameters.Add(new MySqlParameter("Oddsaway", oddAway));
-                    command.Parameters.Add(new MySqlParameter("Video", videoCode));
+                    command.Parameters.Add(new MySqlParameter("Video", ""));
 
                     command.ExecuteNonQuery();
                 }
@@ -374,7 +336,7 @@ namespace Cronjob
                 logOutput.AppendLine(String.Format("[{0}]       [-] Checking for missing odds", DateTime.Now.ToString()));
                 CheckForMissingOdds(connection);
 
-                if (fixtures.All(match => match.StatusShort == "FT") && !Convert.ToBoolean(globalConstants["EMAIL_LEAGUE_MANAGERS"]))
+                if (fixtures.All(match => match.FixtureInfo.Status.Short == "FT") && !Convert.ToBoolean(globalConstants["EMAIL_LEAGUE_MANAGERS"]))
                 {
                     logOutput.AppendLine(String.Format("[{0}]       [-] Sending e-mails to league managers", DateTime.Now.ToString()));
 
@@ -453,36 +415,7 @@ namespace Cronjob
             return String.Join("/", shortSeason, shortSeason + 1);
         }
 
-        private static string GetVideo(string apiUrlYoutube, Fixtures.Fixture match, string season, string xRapidApiKey, string xRapidApiHost)
-        {
-            var youtubeUrl = new RestClient(apiUrlYoutube);
-            var youtubeRequest = new RestRequest();
-            youtubeRequest.AddHeader("X-RAPIDAPI-KEY", xRapidApiKey);
-            youtubeRequest.AddHeader("X-RAPIDAPI-HOST", xRapidApiHost);
-            var query = GetQuery(match, season);
-            youtubeRequest.AddQueryParameter("query", query);
-            var youtubeResponse = youtubeUrl.Execute(youtubeRequest);
-
-            var parsedVideos = JsonConvert.DeserializeObject<Videos.Videos>(youtubeResponse.Content);
-
-            if (parsedVideos.Contents.Any())
-            {
-                return parsedVideos.Contents[0].Video.VideoId;
-            }
-
-            return null;
-        }
-
-        private static string GetQuery(Fixtures.Fixture match, string season)
-        {
-            return "vsports" + " " +
-                match.HomeTeam.TeamName + " " +
-                match.AwayTeam.TeamName + " \"" +
-                match.GoalsHomeTeam + "-" +
-                match.GoalsAwayTeam + "\" " +
-                "\"(Liga " + FullSeason(season) + " " +
-                "#" + match.Round.Split('-')[1][1..] + ")\"";
-        }
+        
 
         private static string ProcessForme(string forme)
         {
@@ -552,7 +485,7 @@ namespace Cronjob
         {
             var leaguesUrl = new RestClient(apiUrl + "/leagueTable/" + leagueId);
             var leaguesRequest = new RestRequest();
-            leaguesRequest.AddHeader("X-RAPIDAPI-KEY", apiSportsKey);
+            leaguesRequest.AddHeader("X-APISPORTS-KEY", apiSportsKey);
             var standingsResponse = leaguesUrl.Execute(leaguesRequest);
             standingsResponseAttachment = standingsResponse.Content;
 
@@ -753,17 +686,16 @@ namespace Cronjob
             return queriedTeams;
         }
 
-        private static List<Teams.Team> GetTeams(string apiUrl, string leagueId, string apiSportsKey)
+        private static List<Teams.Team> GetTeams(string apiSportsKey)
         {
-            var teamsUrl = new RestClient(apiUrl + "/teams/league/" + leagueId);
+            var teamsUrl = new RestClient("https://v3.football.api-sports.io/teams?league=94&season=2025");
             var teamsRequest = new RestRequest();
-            teamsRequest.AddHeader("X-RAPIDAPI-KEY", apiSportsKey);
+            teamsRequest.AddHeader("X-APISPORTS-KEY", apiSportsKey);
             var teamsResponse = teamsUrl.Execute(teamsRequest);
             teamsResponseAttachment = teamsResponse.Content;
 
-            var parsedTeams = JsonConvert.DeserializeObject<Teams.Teams>(teamsResponse.Content);
-
-            return parsedTeams.Api.Teams;
+var parsedTeams = JsonConvert.DeserializeObject<Teams.TeamsApiResponse>(teamsResponse.Content);
+return parsedTeams.Response.Select(r => r.Team).ToList();
         }
 
         private static double? GetMatchScore(QueriedMatch.QueriedMatch queriedMatch)
@@ -917,19 +849,6 @@ namespace Cronjob
             return globalConstants;
         }
 
-        private static string GetSeason(string apiUrl, string leagueId, string apiSportsKey)
-        {
-            var leaguesUrl = new RestClient(apiUrl + "/leagues/league/" + leagueId);
-            var leaguesRequest = new RestRequest();
-            leaguesRequest.AddHeader("X-RAPIDAPI-KEY", apiSportsKey);
-            var leaguesResponse = leaguesUrl.Execute(leaguesRequest);
-            leaguesResponseAttachment = leaguesResponse.Content;
-
-            var parsedLeagues = JsonConvert.DeserializeObject<Leagues.Leagues>(leaguesResponse.Content);
-
-            return parsedLeagues.Api.Leagues.FirstOrDefault().Season;
-        }
-
         private static string ProcessResult(int? goalsHomeTeam, int? goalsAwayTeam)
         {
             if (goalsHomeTeam > goalsAwayTeam)
@@ -948,65 +867,63 @@ namespace Cronjob
             return null;
         }
 
-        private static Dictionary<string, SimpleOdd.SimpleOdd> GetOdds(string apiUrl, string leagueId, string bookmakerId, string apiSportsKey)
+        private static Dictionary<string, SimpleOdd.SimpleOdd> GetOdds(string apiSportsKey)
         {
             StringBuilder fullResponse = new StringBuilder();
             int page = 1;
-            var oddsUrl = new RestClient(apiUrl + "/odds/league/" + leagueId + "/label/1");
+            var oddsUrl = new RestClient("https://v3.football.api-sports.io/odds?league=94&season=2025&bookmaker=8&bet=1");
             var oddsRequest = new RestRequest();
-            oddsRequest.AddHeader("X-RAPIDAPI-KEY", apiSportsKey);
+            oddsRequest.AddHeader("X-APISPORTS-KEY", apiSportsKey);
 
             List<Odd> odds = new List<Odd>();
             string oddsResponseAttachment;
 
-            while (true)
-            {
-                oddsRequest.AddOrUpdateParameter("page", page.ToString());
-                var oddsResponse = oddsUrl.Execute(oddsRequest);
-                fullResponse.AppendLine(oddsResponse.Content);
 
-                var parsedOdds = JsonConvert.DeserializeObject<Odds.Odds>(oddsResponse.Content);
-                odds.AddRange(parsedOdds.Api.Odds);
+while (true)
+{
+    oddsRequest.AddOrUpdateParameter("page", page.ToString());
+    var oddsResponse = oddsUrl.Execute(oddsRequest);
+    fullResponse.AppendLine(oddsResponse.Content);
 
-                if (parsedOdds.Api.Paging.Current == parsedOdds.Api.Paging.Total)
-                {
-                    break;
-                }
+    var parsedOdds = JsonConvert.DeserializeObject<Odds.OddsApiResponse>(oddsResponse.Content);
+    odds.AddRange(parsedOdds.Odds);
 
-                page++;
-            }
+    if (parsedOdds.Paging.Current == parsedOdds.Paging.Total)
+    {
+        break;
+    }
+
+    page++;
+}
 
             oddsResponseAttachment = fullResponse.ToString();
 
-            return odds
-                .ToDictionary(
-                    odd => odd.Fixture.FixtureId,
-                    odd =>
-                    {
-                        Bookmaker bookmaker = odd.Bookmakers.FirstOrDefault(auxBookmaker => auxBookmaker.BookmakerId == bookmakerId);
+            return odds.ToDictionary(
+    odd => odd.Fixture.Id.ToString(),
+    odd =>
+    {
+        var values = odd.Bookmakers[0].Bets[0].Values;
 
-                        if (bookmaker == null)
-                        {
-                            return null;
-                        }
+        return new SimpleOdd.SimpleOdd
+        {
+            OddHome = double.Parse(values.First(v => v.Value == "Home").Odd),
+            OddDraw = double.Parse(values.First(v => v.Value == "Draw").Odd),
+            OddAway = double.Parse(values.First(v => v.Value == "Away").Odd)
+        };
+    });
 
-                        return new SimpleOdd.SimpleOdd(bookmaker);
-                    })
-                .Where(kvp => kvp.Value != null)
-                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
         }
 
-        private static List<Fixtures.Fixture> GetFixtures(string apiUrl, string leagueId, string apiSportsKey)
+        private static List<Fixtures.Fixture> GetFixtures(string apiSportsKey)
         {
-            var fixturesUrl = new RestClient(apiUrl + "/fixtures/league/" + leagueId);
+            var fixturesUrl = new RestClient("https://v3.football.api-sports.io/fixtures?league=94&season=2025");
             var fixturesRequest = new RestRequest();
-            fixturesRequest.AddHeader("X-RAPIDAPI-KEY", apiSportsKey);
+            fixturesRequest.AddHeader("X-APISPORTS-KEY", apiSportsKey);
             var fixturesResponse = fixturesUrl.Execute(fixturesRequest);
             fixturesResponseAttachment = fixturesResponse.Content;
 
-            var parsedFixtures = JsonConvert.DeserializeObject<Fixtures.Fixtures>(fixturesResponse.Content);
-
-            return parsedFixtures.Api.Fixtures;
+            var parsedResponse = JsonConvert.DeserializeObject<Fixtures.FixturesApiResponse>(fixturesResponse.Content);
+            return parsedResponse.Response;
         }
     }
 }

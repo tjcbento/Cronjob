@@ -22,65 +22,104 @@ namespace Leagues
         public string Season { get; set; }
     }
 }
-
 namespace Fixtures
 {
-    public partial class Fixtures
+    public class FixturesApiResponse
     {
-        [JsonProperty("api")]
-        public Api Api { get; set; }
+        [JsonProperty("response")]
+        public List<Fixture> Response { get; set; }
+
+        [JsonProperty("paging")]
+        public Paging Paging { get; set; }
     }
 
-    public partial class Api
+    public class Fixture
     {
-        [JsonProperty("results")]
-        public int Results { get; set; }
+        [JsonProperty("fixture")]
+        public FixtureInfo FixtureInfo { get; set; }
 
-        [JsonProperty("fixtures")]
-        public List<Fixture> Fixtures { get; set; }
-    }
-
-    public partial class Fixture
-    {
-        [JsonProperty("fixture_id")]
-        public string FixtureId { get; set; }
+        [JsonProperty("teams")]
+        public Teams Teams { get; set; }
 
         [JsonProperty("league")]
         public League League { get; set; }
 
-        [JsonProperty("event_date")]
-        public DateTimeOffset EventDate { get; set; }
+        [JsonProperty("goals")]
+        public Goals Goals { get; set; }
+    }
 
-        [JsonProperty("round")]
-        public string Round { get; set; }
+    public class FixtureInfo
+    {
+        [JsonProperty("id")]
+        public string FixtureId { get; set; }
 
-        [JsonProperty("statusShort")]
-        public string StatusShort { get; set; }
+        [JsonProperty("date")]
+        public DateTime EventDate { get; set; }
 
-        [JsonProperty("homeTeam")]
+        [JsonProperty("status")]
+        public Status Status { get; set; }
+    }
+
+    public class Goals
+    {
+        [JsonProperty("home")]
+        public int? Home { get; set; }
+
+        [JsonProperty("away")]
+        public int? Away { get; set; }
+    }
+
+    public class Status
+    {
+        [JsonProperty("short")]
+        public string Short { get; set; }
+    }
+
+    public class Teams
+    {
+        [JsonProperty("home")]
         public Team HomeTeam { get; set; }
 
-        [JsonProperty("awayTeam")]
+        [JsonProperty("away")]
         public Team AwayTeam { get; set; }
-
-        [JsonProperty("goalsHomeTeam")]
-        public int? GoalsHomeTeam { get; set; }
-
-        [JsonProperty("goalsAwayTeam")]
-        public int? GoalsAwayTeam { get; set; }
     }
 
-    public partial class Team
+    public class Team
     {
-        [JsonProperty("team_id")]
-        public int TeamId { get; set; }
+        [JsonProperty("id")]
+        public int Id { get; set; }
 
-        [JsonProperty("team_name")]
-        public string TeamName { get; set; }
-
-        [JsonProperty("logo")]
-        public Uri Logo { get; set; }
+        [JsonProperty("name")]
+        public string Name { get; set; }
     }
+
+    public class League
+    {
+        [JsonProperty("round")]
+        public string Round { get; set; }
+    }
+
+    public class Paging
+    {
+        [JsonProperty("current")]
+        public int Current { get; set; }
+
+        [JsonProperty("total")]
+        public int Total { get; set; }
+    }
+}
+
+public partial class Team
+{
+    [JsonProperty("team_id")]
+    public int TeamId { get; set; }
+
+    [JsonProperty("team_name")]
+    public string TeamName { get; set; }
+
+    [JsonProperty("logo")]
+    public Uri Logo { get; set; }
+}
 
     public partial class League
     {
@@ -96,29 +135,19 @@ namespace Fixtures
         [JsonProperty("flag")]
         public Uri Flag { get; set; }
     }
-}
 
 namespace Odds
 {
-    public partial class Odds
+    public class OddsApiResponse
     {
-        [JsonProperty("api")]
-        public Api Api { get; set; }
-    }
-
-    public partial class Api
-    {
-        [JsonProperty("results")]
-        public int Results { get; set; }
+        [JsonProperty("response")]
+        public List<Odd> Odds { get; set; }
 
         [JsonProperty("paging")]
         public Paging Paging { get; set; }
-
-        [JsonProperty("odds")]
-        public List<Odd> Odds { get; set; }
     }
 
-    public partial class Odd
+    public class Odd
     {
         [JsonProperty("fixture")]
         public Fixture Fixture { get; set; }
@@ -127,31 +156,28 @@ namespace Odds
         public List<Bookmaker> Bookmakers { get; set; }
     }
 
-    public partial class Bookmaker
+    public class Fixture
     {
-        [JsonProperty("bookmaker_id")]
-        public string BookmakerId { get; set; }
+        [JsonProperty("id")]
+        public int Id { get; set; }
+    }
 
-        [JsonProperty("bookmaker_name")]
-        public string BookmakerName { get; set; }
-
+    public class Bookmaker
+    {
         [JsonProperty("bets")]
         public List<Bet> Bets { get; set; }
     }
 
-    public partial class Bet
+    public class Bet
     {
-        [JsonProperty("label_id")]
-        public int LabelId { get; set; }
-
-        [JsonProperty("label_name")]
-        public string LabelName { get; set; }
+        [JsonProperty("id")]
+        public int Id { get; set; }
 
         [JsonProperty("values")]
-        public List<ValueElement> Values { get; set; }
+        public List<BetValue> Values { get; set; }
     }
 
-    public partial class ValueElement
+    public class BetValue
     {
         [JsonProperty("value")]
         public string Value { get; set; }
@@ -160,16 +186,7 @@ namespace Odds
         public string Odd { get; set; }
     }
 
-    public partial class Fixture
-    {
-        [JsonProperty("fixture_id")]
-        public string FixtureId { get; set; }
-
-        [JsonProperty("updateAt")]
-        public long UpdateAt { get; set; }
-    }
-
-    public partial class Paging
+    public class Paging
     {
         [JsonProperty("current")]
         public int Current { get; set; }
@@ -181,28 +198,28 @@ namespace Odds
 
 namespace Teams
 {
-    public partial class Teams
+    public class TeamsApiResponse
     {
-        [JsonProperty("api")]
-        public Api Api { get; set; }
+        [JsonProperty("response")]
+        public List<TeamWrapper> Response { get; set; }
     }
 
-    public partial class Api
+    public class TeamWrapper
     {
-        [JsonProperty("teams")]
-        public List<Team> Teams { get; set; }
+        [JsonProperty("team")]
+        public Team Team { get; set; }
     }
 
-    public partial class Team
+    public class Team
     {
-        [JsonProperty("team_id")]
-        public string TeamId { get; set; }
+        [JsonProperty("id")]
+        public string Id { get; set; }
 
         [JsonProperty("name")]
         public string Name { get; set; }
 
         [JsonProperty("logo")]
-        public string LogoUri { get; set; }
+        public string Logo { get; set; }
     }
 }
 
